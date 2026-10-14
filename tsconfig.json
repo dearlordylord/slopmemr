@@ -1,0 +1,52 @@
+{
+  "compilerOptions": {
+    "target": "ES2024",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
+    "types": [
+      "node"
+    ],
+    "declaration": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "moduleDetection": "force",
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "sourceMap": true,
+    "declarationMap": true,
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        "diagnosticSeverity": {
+          "globalConsole": "error",
+          "globalConsoleInEffect": "error"
+        },
+        "allowedUnstableApis": [
+          "@effect/platform-node/NodeRuntime#runMain"
+        ],
+        "overrides": [
+          {
+            "include": [
+              "src/**/*.test.ts"
+            ],
+            "options": {
+              "allowedUnstableApis": [
+                "@effect/vitest#it"
+              ]
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "include": [
+    "src/**/*.ts"
+  ]
+}

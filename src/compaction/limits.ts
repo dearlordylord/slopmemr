@@ -1,0 +1,12 @@
+const mebibyte = 1024 * 1024
+const maximumResponseMebibytes = 16
+const maximumLineMebibytes = 2
+export const defaultConcurrency = 4
+export const defaultPerAuthConcurrency = 2
+export const defaultAttemptTimeoutMs = 120_000
+export const maximumAuthProfiles = 256
+export const maximumModelPages = 100
+export const maximumResponseBytes = mebibyte * maximumResponseMebibytes
+export const maximumResponseLineBytes = mebibyte * maximumLineMebibytes
+export const terminationGraceMs = 1_000
+export const unsupportedMethodCode = -32601

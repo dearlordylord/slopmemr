@@ -1,0 +1,19 @@
+{
+  "validation": "synthetic-claude-subscription-compaction",
+  "runtime": "claude",
+  "modelFamily": "haiku",
+  "authentication": "existing claude.ai subscription",
+  "apiKeysUsed": false,
+  "repositoryContentUsed": false,
+  "toolsAndMcp": "disabled and checked",
+  "summaryBytes": 151,
+  "preservedIdentityFilename": true,
+  "usage": [
+    {
+      "input": 2,
+      "output": 48,
+      "cachedInput": 0,
+      "cacheWriteInput": 862
+    }
+  ]
+}

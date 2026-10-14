@@ -1,0 +1,6 @@
+{
+  "oxc": { "indentStyle": "space", "indentWidth": 2, "lineWidth": 120, "semicolons": "asNeeded", "quoteStyle": "double", "trailingCommas": "none", "expand": "never" },
+  "includes": ["src/**/*.{ts,mjs}", "scripts/**/*.mjs", "*.config.ts"],
+  "excludes": ["**/node_modules", "**/dist", "**/coverage"],
+  "plugins": ["https://plugins.dprint.dev/oxc-0.32.0.wasm"]
+}

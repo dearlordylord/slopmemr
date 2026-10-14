@@ -1,0 +1,92 @@
+{
+  "name": "@firfi/slopmemr",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Resident project memory for coding agents, powered by UNII",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "bin": {
+    "slopmemr": "dist/bin/slopmemr.mjs"
+  },
+  "exports": {
+    ".": "./dist/index.js",
+    "./resident-client": "./dist/resident/client.js",
+    "./protocol": "./dist/resident/protocol.js",
+    "./hooks": "./dist/intake/hook.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "docs"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node scripts/build.mjs",
+    "typecheck": "pnpm typecheck:tsc && pnpm typecheck:effect",
+    "pretest": "pnpm build",
+    "test": "vitest run",
+    "check": "pnpm check-all",
+    "architecture:check": "node scripts/check-boundaries.mjs && node --test scripts/check-boundaries.test.mjs",
+    "lint": "oxlint --deny-warnings src vitest.config.ts && dprint check && jscpd --silent src",
+    "format": "dprint fmt",
+    "format:check": "dprint check",
+    "dev-install": "pnpm build && node scripts/dev-install.mjs",
+    "check-all": "pnpm build && pnpm verify:cohort && pnpm typecheck && pnpm circular && pnpm complexity && pnpm lint && pnpm secrets:check && pnpm test:quality && pnpm test:installed && pnpm test:bootstrap",
+    "typecheck:tsc": "tsc --noEmit",
+    "typecheck:effect": "node scripts/check-effect.mjs",
+    "circular": "dpdm --no-warning --no-tree --no-progress --exit-code circular:1 --transform 'src/**/*.ts' && pnpm architecture:check",
+    "complexity": "oxlint -c oxlint.complexity.json src",
+    "verify:cohort": "node scripts/check-cohort.mjs",
+    "test:coverage": "vitest run --coverage",
+    "test:installed": "node scripts/installed-witness.mjs",
+    "test:native": "node scripts/native-agent-witness.mjs",
+    "test:claude": "node scripts/claude-compaction-witness.mjs",
+    "prepare": "husky",
+    "secrets:check": "gitleaks dir --no-banner --redact .",
+    "test:quality": "crap4ts --config crap4ts.json",
+    "test:bootstrap": "node --test scripts/dev-install.test.mjs"
+  },
+  "dependencies": {
+    "@effect/platform-node": "4.0.3",
+    "@firfi/unii": "file:../unii",
+    "effect": "4.0.3"
+  },
+  "devDependencies": {
+    "@babel/parser": "8.0.7",
+    "@crap4ts/crap4ts": "1.1.0",
+    "@effect/tsgo": "0.51.1",
+    "@effect/vitest": "4.0.3",
+    "@types/node": "24.10.1",
+    "@vitest/coverage-v8": "5.0.4",
+    "dpdm": "4.3.0",
+    "dprint": "0.63.0",
+    "esbuild": "0.27.2",
+    "fast-check": "4.8.0",
+    "husky": "9.1.7",
+    "jscpd": "5.4.1",
+    "lint-staged": "17.6.0",
+    "oxlint": "1.87.0",
+    "oxlint-tsgolint": "7.0.2003",
+    "typescript": "7.0.2",
+    "vitest": "5.0.4"
+  },
+  "packageManager": "pnpm@10.27.0",
+  "lint-staged": {
+    "*.ts": [
+      "oxlint --deny-warnings",
+      "dprint check"
+    ],
+    "*.mjs": "dprint check"
+  },
+  "os": [
+    "linux",
+    "darwin"
+  ],
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "dprint",
+      "esbuild"
+    ]
+  }
+}

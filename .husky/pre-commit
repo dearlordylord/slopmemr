@@ -1,0 +1,5 @@
+pnpm exec lint-staged
+pnpm typecheck
+pnpm circular
+pnpm complexity
+gitleaks git --staged --no-banner --redact

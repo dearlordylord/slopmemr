@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-12",
+  "kind": "synthetic-subscription-compaction",
+  "codexVersion": "0.162.1",
+  "model": "gpt-6-luna",
+  "authentication": "chatgpt",
+  "repositoryContentSent": false,
+  "apiKeysProvided": false,
+  "elapsedMs": 3293,
+  "summaryBytes": 303,
+  "nonempty": true,
+  "withinNodeTarget": true,
+  "rootFactPresent": true,
+  "worktreeFactPresent": true,
+  "usage": {
+    "input": 7493,
+    "output": 59,
+    "cachedInput": 1792
+  }
+}

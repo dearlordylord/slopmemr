@@ -1,0 +1,13 @@
+{
+  "witness": "real-native-codex-installed-hooks",
+  "codexVersion": "codex-cli 0.162.1",
+  "authentication": "existing-chatgpt-login",
+  "model": "gpt-6-luna",
+  "apiKeys": false,
+  "syntheticProjectOnly": true,
+  "nativeAgentSucceeded": true,
+  "automaticResidentStartup": true,
+  "recordCount": 4,
+  "snapshotStatus": "ready",
+  "durationMs": 19449
+}

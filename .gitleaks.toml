@@ -1,0 +1,6 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Dependency trees and generated build/coverage artifacts are scanned through their source inputs"
+paths = ['''(^|/)node_modules/''', '''(^|/)dist/''', '''(^|/)coverage/''', '''pnpm-lock\.yaml$''']

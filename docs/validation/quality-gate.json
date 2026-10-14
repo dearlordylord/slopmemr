@@ -1,0 +1,56 @@
+{
+  "validation": "slopmemr-final-quality-gate",
+  "command": "pnpm check-all",
+  "exitCode": 0,
+  "typescript": "7.0.2",
+  "effect": "4.0.3",
+  "effectDiagnostics": {
+    "checkedFiles": 64,
+    "errors": 0,
+    "warnings": 0
+  },
+  "crap4ts": {
+    "version": "1.1.0",
+    "threshold": 8,
+    "functionCount": 416,
+    "maximumScore": 8.0,
+    "unknownFunctions": 0,
+    "breaches": 0,
+    "generatedCoverage": "fresh Istanbul JSON",
+    "percentageThresholds": false
+  },
+  "tests": {
+    "files": 18,
+    "passed": 181,
+    "failed": 0
+  },
+  "dependencyCycles": 0,
+  "typedLint": "passed",
+  "complexityLimit": 8,
+  "secretScan": "passed",
+  "installedArtifact": "passed",
+  "bootstrapTests": {
+    "passed": 2,
+    "failed": 0
+  },
+  "review": "Iterative Astra source review; auth migration and process-group cleanup findings fixed and regression-tested; final re-review found no further substantive defects in scope.",
+  "projectIdentity": {
+    "file": ".slopmemr-id",
+    "relocation": "passed in tests and installed bundle",
+    "gitInit": "passed in tests and installed bundle",
+    "legacyAdoption": "passed",
+    "concurrentCreation": "passed",
+    "corruptOrSymlinkFile": "rejected"
+  },
+  "compactionBackends": {
+    "codex": "ChatGPT subscription / Luna",
+    "claude": "claude.ai subscription / Haiku",
+    "crossRuntimeAuthFallback": false,
+    "sharedGlobalConcurrency": 4,
+    "perProfileConcurrency": 2,
+    "installedClaudeWithoutCodex": "passed",
+    "liveClaudeCompaction": "docs/validation/claude-compaction.json",
+    "legacyForeignAuth": "discarded for inference; explicit same-runtime fallback required",
+    "layerDisposal": "active Claude process terminates before attempt timeout"
+  }
+}
