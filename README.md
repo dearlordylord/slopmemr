@@ -8,11 +8,13 @@
 
 slopmemr runs one local resident per operating-system user. Coding agents contribute observations to a shared memory for their real project root. Linked Git worktrees use the primary working copy's pool; independent clones have separate pools. Sessions and child agents carry provenance, rather than owning separate memories. Non-Git projects use the explicitly supplied physical launch root. A local `.slopmemr-id` file in that root holds the permanent identity; moving the project or initializing/removing Git does not reset memory. Linked worktrees use the primary working copy’s file. Keep this file when moving and do not commit it: a full filesystem copy containing the ID shares memory, while an ordinary Git clone gets a new ID. Creating the identity requires a writable root. Existing path-keyed memory is adopted on first access before relocation.
 
-[UNII](../unii/README.md) owns immutable summary trees, compact views, zooming, and compression scheduling. slopmemr adds SQLite persistence, retry-safe intake, a private Unix socket, and Effect 4 services. Hooks capture supplied prompts, tool inputs/results, and assistant stop messages. This phase has no advice, review classification, or automatic memory injection.
+[UNII](../unii/README.md) owns immutable summary trees, compact views, zooming, and compression scheduling. slopmemr adds SQLite persistence, retry-safe intake, a private Unix socket, and Effect 4 services. Hooks capture supplied prompts, tool inputs/results, and assistant stop messages. SessionStart gives a tiny reading guide. Four direct MCP tools expose snapshot, zoom, status and roots; CLI is the fallback. Reads return available memory immediately with coverage, freshness and processing state. This phase has no advice, review classification, or automatic memory injection.
 
 ## Install
 
-Use Node 24 on Linux or macOS, pnpm, Git, and the calling runtime’s installed CLI with an existing subscription login for compaction. Keep `../unii` beside this checkout for the build:
+For a ready-made package, unpack the matching archive and run `./bin/slopmemr install codex` or `./bin/slopmemr install claude`. Node is included. The calling runtime’s installed CLI and subscription login are needed for compaction. Release publication is pending; `pnpm package` builds an archive for the current platform.
+
+For development, use Node 24 on Linux or macOS, pnpm and Git. Keep `../unii` beside this checkout for the build:
 
 ```sh
 pnpm --dir ../unii install --ignore-scripts
@@ -35,11 +37,11 @@ Use `--profile /absolute/host-profile` to select a non-default native profile. C
 
 ```sh
 slopmemr doctor codex
-slopmemr update codex
+slopmemr update codex --target /absolute/package-directory
 slopmemr uninstall codex
 ```
 
-Setup and update preserve unrelated handlers and reject modified owned entries. Interrupted operations recover when repeated. Uninstall retains memory. A running resident keeps its current version until it exits; after an update, `slopmemr stop` gracefully drains it and the next hook starts the selected snapshot. See the [installation contract](docs/installation.md).
+Setup and update preserve unrelated handlers and reject modified owned entries. Interrupted operations recover when repeated. Uninstall retains memory. Update gracefully switches to the shared selected resident build. `slopmemr repair codex|claude` restores missing owned bindings while rejecting modified entries. See the [installation contract](docs/installation.md).
 
 `pnpm check-all` runs the strict TypeScript/Effect, cycle, complexity, typed lint, duplication, formatting, CRAP risk and installed-artifact gates. Offline tests never call a provider. `pnpm test:native` is the explicit synthetic Codex live witness; `pnpm test:claude` checks live Claude/Haiku compaction.
 

@@ -1,18 +1,26 @@
+import { verifySnapshot, artifactFiles } from "./artifacts.js"
 import { dirname } from "node:path"
 import { privateDirectory } from "../local-state/private-directory.js"
 import { Effect, Schema } from "effect"
 import type { ProcessLaunch } from "../local-state/process-launch.js"
-import { InstallationError, Operation, Ownership, type Selection, type Snapshot } from "./contracts.js"
+import {
+  Delivery,
+  type DeliveryIntent,
+  InstallationError,
+  Operation,
+  Ownership,
+  type Selection,
+  type Snapshot
+} from "./contracts.js"
 import { installationPaths, launcherContent, makeOwnership, contentDigest } from "./binding.js"
 import { capture } from "./snapshot.js"
 import { exclusive, readOptional, removeOptional, writeAtomic } from "./files.js"
 import { configurationText, parseConfiguration, reconcile } from "./reconciliation.js"
+import { sameEntry } from "./mcp-configuration.js"
+import { mcpLock, preflightMcp, publishMcp, validateMcpOperation } from "./mcp.js"
+import type { InstallationFiles } from "./ports.js"
+export type { InstallationFiles } from "./ports.js"
 
-export interface InstallationFiles {
-  readonly read: typeof readOptional
-  readonly write: typeof writeAtomic
-  readonly remove: typeof removeOptional
-}
 const liveFiles: InstallationFiles = { read: readOptional, write: writeAtomic, remove: removeOptional }
 const jsonIndentation = 2
 const encode = (value: unknown): string => JSON.stringify(value, null, jsonIndentation) + "\n"
@@ -23,6 +31,15 @@ const decodeOptional = <S extends Schema.Top & Schema.ConstraintDecoder<unknown>
   text === undefined ? undefined : Schema.decodeUnknownSync(Schema.fromJsonString(schema))(text)
 
 const validateSelection = (actual: Selection, expected: Selection): void => {
+  if (
+    actual.mcpConfiguration !== undefined &&
+    expected.mcpConfiguration !== undefined &&
+    actual.mcpConfiguration !== expected.mcpConfiguration
+  )
+    throw new InstallationError({
+      operation: "ownership",
+      message: "MCP configuration scope differs from the owned installation"
+    })
   if (actual.runtime !== expected.runtime || actual.profile !== expected.profile)
     throw new InstallationError({ operation: "ownership", message: "Installation belongs to a different profile" })
 }
@@ -44,6 +61,7 @@ const finish = (operation: Operation, files: InstallationFiles): void => {
   const ownership = operation.ownership
   const paths = installationPaths(ownership.selection)
   validateLauncher(files.read(paths.launcher), operation)
+  validateMcpOperation(operation, files)
   const before = files.read(paths.configuration)
   const configuration = before === undefined ? {} : parseConfiguration(before)
   const install = operation._tag === "Install"
@@ -56,6 +74,7 @@ const finish = (operation: Operation, files: InstallationFiles): void => {
       message: "Native settings changed during installation; retry to reconcile"
     })
   if (before !== next) files.write(paths.configuration, next)
+  publishMcp(operation, files)
   if (install) files.write(paths.ownership, encode(ownership))
   else {
     files.remove(paths.launcher)
@@ -89,7 +108,8 @@ export const install = Effect.fn("Installation.install")(function* (
   dataDirectory: string,
   update: boolean,
   files: InstallationFiles = liveFiles,
-  activate: (selection: Selection) => Effect.Effect<void, InstallationError> = () => Effect.void
+  activate: (selection: Selection) => Effect.Effect<void, InstallationError> = () => Effect.void,
+  delivery?: DeliveryIntent
 ) {
   return yield* Effect.scoped(
     Effect.gen(function* () {
@@ -99,13 +119,33 @@ export const install = Effect.fn("Installation.install")(function* (
         catch: (cause) => failure("directory", cause)
       })
       yield* exclusive(paths.directory, paths.lock)
+      const destination = mcpLock(paths.mcpConfiguration)
+      yield* exclusive(destination.directory, destination.path)
       const snapshot = yield* capture(source, dataDirectory)
+      yield* Effect.try({
+        try: () => {
+          const pending = decodeOptional(Delivery, files.read(paths.delivery))
+          if (
+            pending !== undefined &&
+            (delivery === undefined ||
+              pending.intent.action !== delivery.action ||
+              pending.intent.publicDirectory !== delivery.publicDirectory ||
+              !matchesSelection(pending.ownership, selection, snapshot))
+          )
+            throw new InstallationError({
+              operation: "delivery",
+              message: "Interrupted delivery must be repaired before choosing another target"
+            })
+        },
+        catch: (cause) => failure("delivery", cause)
+      })
       const pending = yield* Effect.try({
         try: () => pendingOperation(selection, files, "Install"),
         catch: (cause) => failure("recover", cause)
       })
       if (pending !== undefined) {
         yield* Effect.try({ try: () => validatePending(pending, files), catch: (cause) => failure("recover", cause) })
+        yield* verifySnapshot(pending.ownership.snapshot, artifactFiles)
         yield* activate(pending.ownership.selection)
         yield* Effect.try({ try: () => finish(pending, files), catch: (cause) => failure("recover", cause) })
         if (matchesSelection(pending.ownership, selection, snapshot)) return pending.ownership
@@ -120,6 +160,7 @@ export const install = Effect.fn("Installation.install")(function* (
           if (update && previous === undefined)
             throw new InstallationError({ operation: "update", message: "Profile is not installed; run setup first" })
           const ownership = makeOwnership(preserveAuthSelection(selection, previous), snapshot)
+          preflightMcp(ownership, previous, files, previous !== undefined)
           const configText = files.read(paths.configuration)
           const config = configText === undefined ? {} : parseConfiguration(configText)
           reconcile(config, ownership.command, true, previous !== undefined)
@@ -129,6 +170,7 @@ export const install = Effect.fn("Installation.install")(function* (
             ...(previous === undefined ? {} : { previousOwnership: previous })
           }
           validateLauncher(files.read(paths.launcher), operation)
+          if (delivery !== undefined) files.write(paths.delivery, encode({ intent: delivery, ownership }))
           files.write(paths.operation, encode(operation))
           return operation
         },
@@ -153,8 +195,15 @@ export const uninstall = Effect.fn("Installation.uninstall")(function* (
         catch: (cause) => failure("directory", cause)
       })
       yield* exclusive(paths.directory, paths.lock)
+      const destination = mcpLock(paths.mcpConfiguration)
+      yield* exclusive(destination.directory, destination.path)
       return yield* Effect.try({
         try: () => {
+          if (files.read(paths.delivery) !== undefined)
+            throw new InstallationError({
+              operation: "delivery",
+              message: "Repair interrupted delivery before uninstalling"
+            })
           const pending = pendingOperation(selection, files, "Uninstall")
           if (pending !== undefined) finish(pending, files)
           const ownership = decodeOptional(Ownership, files.read(paths.ownership))
@@ -162,6 +211,7 @@ export const uninstall = Effect.fn("Installation.uninstall")(function* (
           validateSelection(ownership.selection, selection)
           validateOwnership(ownership)
           const operation: Operation = { _tag: "Uninstall", ownership }
+          validateMcpOperation(operation, files)
           validateLauncher(files.read(paths.launcher), operation)
           const text = files.read(paths.configuration)
           reconcile(text === undefined ? {} : parseConfiguration(text), ownership.command, false)
@@ -175,6 +225,54 @@ export const uninstall = Effect.fn("Installation.uninstall")(function* (
   )
 })
 
+/** Repair keeps the recorded target; a pending uninstall retains its intent. */
+export const repair = Effect.fn("Installation.repair")(function* (
+  selection: Selection,
+  files: InstallationFiles = liveFiles,
+  activate: (selection: Selection) => Effect.Effect<void, InstallationError> = () => Effect.void
+) {
+  return yield* Effect.scoped(
+    Effect.gen(function* () {
+      const paths = installationPaths(selection)
+      yield* Effect.try({
+        try: () => privateDirectory(dirname(paths.directory)),
+        catch: (cause) => failure("repair", cause)
+      })
+      yield* exclusive(paths.directory, paths.lock)
+      const destination = mcpLock(paths.mcpConfiguration)
+      yield* exclusive(destination.directory, destination.path)
+      const operation = yield* Effect.try({
+        try: () => prepareRepair(selection, files),
+        catch: (cause) => failure("repair", cause)
+      })
+      if (operation._tag === "Install") yield* verifySnapshot(operation.ownership.snapshot, artifactFiles)
+      yield* Effect.try({
+        try: () => {
+          if (files.read(paths.operation) === undefined) files.write(paths.operation, encode(operation))
+        },
+        catch: (cause) => failure("repair", cause)
+      })
+      if (operation._tag === "Install") yield* activate(operation.ownership.selection)
+      yield* Effect.try({ try: () => finish(operation, files), catch: (cause) => failure("repair", cause) })
+      return { repaired: true, removed: operation._tag === "Uninstall" }
+    })
+  )
+})
+
+const prepareRepair = (selection: Selection, files: InstallationFiles): Operation => {
+  const paths = installationPaths(selection)
+  const pending = decodeOptional(Operation, files.read(paths.operation))
+  const owned = pending?.ownership ?? decodeOptional(Ownership, files.read(paths.ownership))
+  if (owned === undefined)
+    throw new InstallationError({ operation: "repair", message: "Profile has no owned installation; run install" })
+  validateSelection(owned.selection, selection)
+  validateOwnership(owned)
+  validatePrevious(pending)
+  const operation: Operation = pending ?? { _tag: "Install", ownership: owned, previousOwnership: owned }
+  validatePending(operation, files)
+  return operation
+}
+
 const failure = (operation: string, cause: unknown): InstallationError =>
   cause instanceof InstallationError
     ? cause
@@ -187,6 +285,19 @@ const validateOwnership = (ownership: Ownership): void => {
       operation: "ownership",
       message: "Installation record does not match its profile binding"
     })
+  validateMcpOwnership(ownership, expected)
+}
+
+const validateMcpOwnership = (ownership: Ownership, expected: Ownership): void => {
+  if (
+    ownership.mcp !== undefined &&
+    (expected.mcp === undefined ||
+      !sameEntry(
+        Schema.decodeUnknownSync(Schema.Json)(ownership.mcp),
+        Schema.decodeUnknownSync(Schema.Json)(expected.mcp)
+      ))
+  )
+    throw new InstallationError({ operation: "ownership", message: "MCP ownership does not match its profile binding" })
 }
 
 const preserveAuthSelection = (selection: Selection, previous: Ownership | undefined): Selection => {
@@ -196,6 +307,7 @@ const preserveAuthSelection = (selection: Selection, previous: Ownership | undef
 }
 
 const preserveClaudeProfile = (selection: Selection, previous: Ownership | undefined): Selection => ({
+  ...selection,
   runtime: selection.runtime,
   profile: selection.profile,
   claudeHome: selection.claudeHome ?? previous?.selection.claudeHome ?? selection.profile
@@ -207,6 +319,7 @@ const preserveCodexProfile = (selection: Selection, previous: Ownership | undefi
 }
 
 const validatePending = (operation: Operation, files: InstallationFiles): void => {
+  validateMcpOperation(operation, files)
   validateLauncher(files.read(installationPaths(operation.ownership.selection).launcher), operation)
   const text = files.read(installationPaths(operation.ownership.selection).configuration)
   reconcile(
@@ -222,3 +335,8 @@ const matchesSelection = (ownership: Ownership, selection: Selection, snapshot: 
   ownership.snapshot.launch.entrypoint === snapshot.launch.entrypoint &&
   ownership.selection.codexHome === preserveAuthSelection(selection, ownership).codexHome &&
   ownership.selection.claudeHome === preserveAuthSelection(selection, ownership).claudeHome
+
+const validatePrevious = (pending: Operation | undefined): void => {
+  if (pending?._tag === "Install" && pending.previousOwnership !== undefined)
+    validateOwnership(pending.previousOwnership)
+}

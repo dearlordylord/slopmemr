@@ -12,6 +12,7 @@ const env = {
   ...process.env,
   SLOPMEMR_RUNTIME_DIR: join(directory, "run"),
   SLOPMEMR_DATA_DIR: join(directory, "data"),
+  SLOPMEMR_BIN_DIR: join(directory, "bin"),
   CODEX_HOME: profile
 }
 const run = (entrypoint, args, input) => {

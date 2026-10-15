@@ -13,9 +13,11 @@ export const configuration = Effect.gen(function* () {
     Config.withDefault(join(homedir(), ".local", "share", "slopmemr"))
   )
   const callerHome = yield* Config.option(Config.NonEmptyString("CODEX_HOME"))
-  const callerClaudeHome = yield* Config.NonEmptyString("CLAUDE_CONFIG_DIR").pipe(
-    Config.withDefault(join(homedir(), ".claude"))
-  )
+  const claudeDirectory = yield* Config.option(Config.NonEmptyString("CLAUDE_CONFIG_DIR"))
+  const callerClaudeHome = Option.getOrElse(claudeDirectory, () => join(homedir(), ".claude"))
+  const callerClaudeMcpConfiguration = Option.isSome(claudeDirectory)
+    ? join(claudeDirectory.value, ".claude.json")
+    : join(homedir(), ".claude.json")
   const fallback = yield* Config.option(Config.NonEmptyString("SLOPMEMR_CODEX_HOME"))
   const claudeFallback = yield* Config.option(Config.NonEmptyString("SLOPMEMR_CLAUDE_HOME"))
   const compactor = {
@@ -29,6 +31,9 @@ export const configuration = Effect.gen(function* () {
     ...(Option.isSome(fallback) ? { fallbackHome: fallback.value } : {})
   }
   return {
+    publicDirectory: yield* Config.NonEmptyString("SLOPMEMR_BIN_DIR").pipe(
+      Config.withDefault(join(homedir(), ".local", "bin"))
+    ),
     endpoint: endpoint(runtimeDirectory),
     memory: {
       directory: dataDirectory,
@@ -43,6 +48,7 @@ export const configuration = Effect.gen(function* () {
       ...(Option.isSome(claudeFallback) ? { fallbackHome: claudeFallback.value } : {})
     },
     callerClaudeHome,
+    callerClaudeMcpConfiguration,
     callerHome: Option.getOrElse(callerHome, () => join(homedir(), ".codex"))
   }
 })

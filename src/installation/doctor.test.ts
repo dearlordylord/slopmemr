@@ -4,10 +4,10 @@ import { join, resolve } from "node:path"
 import { afterEach, expect } from "vitest"
 import { it } from "@effect/vitest"
 import { Effect } from "effect"
-import { install } from "./manager.js"
+import { install, repair } from "./manager.js"
 import { doctor } from "./doctor.js"
 import { capture } from "./snapshot.js"
-import { installationPaths, launcherContent, makeOwnership } from "./binding.js"
+import { installationPaths, launcherContent, mcpLauncherContent, makeOwnership } from "./binding.js"
 import { readOptional, writeAtomic } from "./files.js"
 
 const directories: string[] = []
@@ -60,6 +60,7 @@ for (const executableCase of ["missing", "not-executable", "old-version", "inval
       const ownership = makeOwnership(f.selection, snapshot)
       const paths = installationPaths(f.selection)
       writeAtomic(paths.launcher, launcherContent(f.selection, snapshot))
+      writeAtomic(paths.mcpLauncher, mcpLauncherContent(snapshot))
       writeAtomic(paths.ownership, JSON.stringify(ownership))
       expect(yield* doctor(f.selection)).toMatchObject({ registration: "ready", runtimeAvailable: false })
     })
@@ -76,5 +77,27 @@ it.effect("rejects missing/nonstandalone sources and detects immutable runtime m
     writeAtomic(snapshot.launch.entrypoint, "modified immutable runtime")
     expect((yield* capture(f.source, f.data).pipe(Effect.exit))._tag).toBe("Failure")
     expect((yield* capture(f.source, "relative").pipe(Effect.exit))._tag).toBe("Failure")
+  })
+)
+
+it.effect("doctor preserves independent component health", () =>
+  Effect.gen(function* () {
+    const f = yield* Effect.promise(fixture)
+    yield* install(f.selection, f.source, f.data, false)
+    const paths = installationPaths(f.selection)
+    writeAtomic(paths.mcpConfiguration, "malformed")
+    expect(yield* doctor(f.selection)).toMatchObject({
+      registration: "ready",
+      hooks: "ready",
+      mcp: "conflict",
+      runtimeAvailable: true
+    })
+    writeAtomic(paths.mcpConfiguration, "{}")
+    expect(yield* doctor(f.selection)).toMatchObject({ hooks: "ready", mcp: "missing", runtimeAvailable: true })
+    yield* install(f.selection, f.source, f.data, false).pipe(Effect.exit)
+    // Repair may restore a missing owned registration without borrowing a different target.
+    yield* repair(f.selection)
+    yield* Effect.promise(() => rm(paths.launcher))
+    expect(yield* doctor(f.selection)).toMatchObject({ hooks: "missing", mcp: "ready", runtimeAvailable: true })
   })
 )

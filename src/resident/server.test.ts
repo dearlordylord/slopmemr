@@ -7,11 +7,12 @@ import { createConnection, createServer } from "node:net"
 import type { Socket } from "node:net"
 import { afterEach, expect } from "vitest"
 import { it } from "@effect/vitest"
-import { Deferred, Effect, Layer, ManagedRuntime } from "effect"
+import { Deferred, Effect, Layer, ManagedRuntime, Schema } from "effect"
 import { Compactor } from "../compaction/compactor.js"
 import { MemoryManager, layer as memoryLayer } from "../memory/manager.js"
 import { layer } from "./server.js"
-import { endpoint, prepare, secureSocket } from "./endpoint.js"
+import { ServingIdentity } from "./identity.js"
+import { endpoint, prepare, secureSocket, TransportError } from "./endpoint.js"
 import { request } from "./client.js"
 import { maxFrameBytes } from "./protocol.js"
 
@@ -342,6 +343,48 @@ it.live("recovers an OS-owned stale socket after its process dies", () =>
       expect((yield* request(options.endpoint, { _tag: "Ping" }))._tag).toBe("Success")
     } finally {
       yield* Effect.promise(() => runtime.dispose())
+    }
+  })
+)
+
+it.live("conditionally shuts down only the observed process and keeps serving after a rejected guard", () =>
+  Effect.gen(function* () {
+    const options = yield* fixture()
+    let shutdowns = 0
+    const runtime = {
+      executable: process.execPath,
+      entrypoint: join(options.directory, "resident.mjs"),
+      dataDirectory: options.directory
+    }
+    const resident = ManagedRuntime.make(
+      layer({
+        ...options,
+        runtime,
+        onShutdown: () => {
+          shutdowns++
+        }
+      }).pipe(Layer.provide(memoryLayer(options).pipe(Layer.provide(fake))))
+    )
+    try {
+      yield* Effect.promise(() => resident.runPromise(Effect.void))
+      const response = yield* request(options.endpoint, { _tag: "Ping" })
+      if (response._tag !== "Success") return yield* Effect.fail(new TransportError({ message: "Ping failed" }))
+      const expected = yield* Schema.decodeUnknownEffect(ServingIdentity)(response.value)
+      for (const changed of [
+        { ...expected, pid: expected.pid + 1 },
+        { ...expected, implementation: "f".repeat(64) },
+        { ...expected, entrypoint: "/other.mjs" },
+        { ...expected, executable: "/other-node" },
+        { ...expected, dataDirectory: "/other-memory" }
+      ]) {
+        const rejected = yield* request(options.endpoint, { _tag: "Shutdown", expected: changed })
+        expect(rejected._tag).toBe("Failure")
+        expect(shutdowns).toBe(0)
+        expect((yield* request(options.endpoint, { _tag: "Ping" }))._tag).toBe("Success")
+      }
+      expect((yield* request(options.endpoint, { _tag: "Shutdown", expected }))._tag).toBe("Success")
+    } finally {
+      yield* Effect.promise(() => resident.dispose())
     }
   })
 )

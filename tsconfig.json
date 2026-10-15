@@ -33,6 +33,24 @@
         ],
         "overrides": [
           {
+            "include": ["src/mcp/registry.ts"],
+            "options": { "allowedUnstableApis": [
+              "effect/ai/McpSchema#CallToolResult", "effect/ai/McpSchema#Tool",
+              "effect/ai/McpSchema#ToolJson", "effect/ai/McpSchema#ToolOutputJson",
+              "effect/ai/McpServer#McpServer"
+            ] }
+          },
+          {
+            "include": ["src/mcp/stdio.ts"],
+            "options": { "allowedUnstableApis": [
+              "effect/PlatformError#badArgument",
+              "effect/Stdio#Stdio", "effect/Stdio#make", "@effect/platform-node/NodeStdio#layer",
+              "effect/ai/McpServer#layerStdio", "effect/ai/McpProtocol#v2025_11_25",
+              "effect/ai/McpProtocol#v2025_06_18", "effect/ai/McpProtocol#v2025_03_26",
+              "effect/ai/McpProtocol#v2024_11_05"
+            ] }
+          },
+          {
             "include": [
               "src/**/*.test.ts"
             ],
@@ -41,6 +59,11 @@
                 "@effect/vitest#it"
               ]
             }
+          },
+          {
+            "include": ["src/mcp/stdio.test.ts"],
+            "options": { "allowedUnstableApis": ["@effect/vitest#it", "effect/PlatformError#badArgument",
+              "effect/Stdio#Stdio", "effect/Stdio#make"] }
           }
         ]
       }

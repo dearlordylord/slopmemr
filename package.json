@@ -32,7 +32,7 @@
     "format": "dprint fmt",
     "format:check": "dprint check",
     "dev-install": "pnpm build && node scripts/dev-install.mjs",
-    "check-all": "pnpm build && pnpm verify:cohort && pnpm typecheck && pnpm circular && pnpm complexity && pnpm lint && pnpm secrets:check && pnpm test:quality && pnpm test:installed && pnpm test:bootstrap",
+    "check-all": "pnpm build && pnpm verify:cohort && pnpm typecheck && pnpm circular && pnpm complexity && pnpm lint && pnpm secrets:check && pnpm test:quality && pnpm test:installed && pnpm test:bootstrap && pnpm test:package",
     "typecheck:tsc": "tsc --noEmit",
     "typecheck:effect": "node scripts/check-effect.mjs",
     "circular": "dpdm --no-warning --no-tree --no-progress --exit-code circular:1 --transform 'src/**/*.ts' && pnpm architecture:check",
@@ -45,12 +45,15 @@
     "prepare": "husky",
     "secrets:check": "gitleaks dir --no-banner --redact .",
     "test:quality": "crap4ts --config crap4ts.json",
-    "test:bootstrap": "node --test scripts/dev-install.test.mjs"
+    "test:bootstrap": "node --test scripts/dev-install.test.mjs",
+    "package": "pnpm build && node scripts/package.mjs",
+    "test:package": "node scripts/package.mjs && node scripts/package-witness.mjs"
   },
   "dependencies": {
     "@effect/platform-node": "4.0.3",
     "@firfi/unii": "file:../unii",
-    "effect": "4.0.3"
+    "effect": "4.0.3",
+    "smol-toml": "1.8.0"
   },
   "devDependencies": {
     "@babel/parser": "8.0.7",

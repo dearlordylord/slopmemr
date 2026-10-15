@@ -22,3 +22,9 @@ export const reportFailure = Effect.fn("CLI.reportFailure")(function* (error: un
     process.exitCode = 1
   })
 })
+
+export const printResponse = Effect.fn("CLI.printResponse")(function* <
+  S extends Schema.Top & Schema.ConstraintDecoder<unknown>
+>(schema: S, value: unknown) {
+  yield* printJson(yield* Schema.decodeUnknownEffect(schema)(value))
+})

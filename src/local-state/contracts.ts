@@ -14,4 +14,5 @@ export type ByteCount = typeof ByteCount.Type
 
 export const privateDirectoryMode = 0o700
 export const privateFileMode = 0o600
+export const privateExecutableMode = 0o700
 export const otherUserPermissions = 0o077

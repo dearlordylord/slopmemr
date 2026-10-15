@@ -1,7 +1,8 @@
+import { failureToken, SummaryBackendFailure } from "./failures.js"
 import { createHash } from "node:crypto"
 import { realpath } from "node:fs/promises"
 import { isAbsolute, join } from "node:path"
-import { Context, Effect, Layer, Semaphore } from "effect"
+import { Context, Effect, Layer, Result, Semaphore } from "effect"
 import { Memory } from "@firfi/unii"
 import type { Policy, Receipt, Snapshot } from "@firfi/unii"
 import { Compactor } from "../compaction/compactor.js"
@@ -13,6 +14,9 @@ import { memoryError } from "./contracts.js"
 import type { Append, MemoryError } from "./contracts.js"
 import { SqliteStorage, storedRoots, legacyPoolKey } from "./storage.js"
 import { privateDirectory } from "../local-state/private-directory.js"
+import { MemoryReadError, parseBoundary, parseZoom, zoomFailure } from "./reading.js"
+import type { AvailableSnapshot, AvailableZoom, ReadStatus } from "./reading.js"
+import { availableSnapshot, availableZoom, readingStatus } from "./available.js"
 
 export interface Options {
   readonly directory: string
@@ -20,7 +24,7 @@ export interface Options {
   readonly policy?: Partial<Policy>
 }
 
-type Failure = MemoryError | RootError
+type Failure = MemoryError | RootError | MemoryReadError
 type Status = ReturnType<Memory["status"]> & { readonly usage: ReturnType<Memory["usage"]> }
 type Zoom = ReturnType<Memory["zoom"]>
 export interface Interface {
@@ -32,7 +36,18 @@ export interface Interface {
   readonly zoom: (root: string, first: number, count: number, page?: number) => Effect.Effect<Zoom, Failure>
   readonly status: (root: string) => Effect.Effect<Status, Failure>
   readonly settle: (root: string, waitMs?: number) => Effect.Effect<Snapshot, Failure>
-  readonly roots: () => Effect.Effect<ReadonlyArray<ProjectRoot>, MemoryError>
+  readonly roots: () => Effect.Effect<ReadonlyArray<ProjectRoot>, MemoryError | MemoryReadError>
+  readonly readSnapshot: (
+    root: string,
+    options?: { before?: number; view?: "main" | "compaction" }
+  ) => Effect.Effect<AvailableSnapshot, Failure>
+  readonly readZoom: (
+    root: string,
+    first: number,
+    count: number,
+    page?: number
+  ) => Effect.Effect<AvailableZoom, Failure>
+  readonly readStatus: (root: string) => Effect.Effect<ReadStatus, Failure>
 }
 
 export class MemoryManager extends Context.Service<MemoryManager, Interface>()("slopmemr/MemoryManager") {}
@@ -96,7 +111,13 @@ export const layer = (options: Options) =>
                       const last = (request.node.index + 1) * binaryTreeBranchCount ** request.node.level - 1
                       const auth = storage.authForRecord(last)
                       return Effect.runPromise(
-                        compactor.compress(auth, request, emit, storage.runtimeForRecord(last)),
+                        compactor
+                          .compress(auth, request, emit, storage.runtimeForRecord(last))
+                          .pipe(
+                            Effect.mapError(
+                              (error) => new SummaryBackendFailure({ message: failureToken(error.message) })
+                            )
+                          ),
                         { signal }
                       )
                     }
@@ -117,7 +138,10 @@ export const layer = (options: Options) =>
       const read = <A>(operation: string, action: () => A) =>
         Effect.try({
           try: action,
-          catch: () => memoryError(operation, "Invalid memory request or unavailable memory state")
+          catch: (cause) =>
+            cause instanceof MemoryReadError
+              ? cause
+              : memoryError(operation, "Invalid memory request or unavailable memory state")
         })
       const append = Effect.fn("MemoryManager.append")(function* (input: Append) {
         const pool = yield* get(input.root)
@@ -174,11 +198,19 @@ export const layer = (options: Options) =>
         options: { before?: number; view?: "main" | "compaction" } = {}
       ) {
         const pool = yield* get(root)
-        return yield* read("snapshot", () => pool.memory.snapshot(options))
+        return yield* read("snapshot", () => {
+          return Result.map(parseBoundary(options.before, pool.memory.status().count), ({ before }) =>
+            pool.memory.snapshot({ ...options, before })
+          )
+        }).pipe(Effect.flatMap(Effect.fromResult))
       })
       const zoom = Effect.fn("MemoryManager.zoom")(function* (root: string, first: number, count: number, page = 0) {
         const pool = yield* get(root)
-        return yield* read("zoom", () => pool.memory.zoom(first, count, { page }))
+        const range = yield* Effect.fromResult(parseZoom(first, count, page, pool.memory.status().count))
+        return yield* Effect.try({
+          try: () => pool.memory.zoom(range.first, range.count, { page: range.page }),
+          catch: zoomFailure
+        })
       })
       const status = Effect.fn("MemoryManager.status")(function* (root: string) {
         const pool = yield* get(root)
@@ -232,7 +264,24 @@ export const layer = (options: Options) =>
         zoom,
         status,
         settle,
-        roots: Effect.fn("MemoryManager.roots")(() => read("roots", () => storedRoots(options.directory)))
+        roots: Effect.fn("MemoryManager.roots")(() => read("roots", () => storedRoots(options.directory))),
+        readSnapshot: Effect.fn("MemoryManager.readSnapshot")(function* (root, input) {
+          const pool = yield* get(root)
+          return yield* read("readSnapshot", () => availableSnapshot(pool.memory, input)).pipe(
+            Effect.flatMap(Effect.fromResult)
+          )
+        }),
+        readZoom: Effect.fn("MemoryManager.readZoom")(function* (root, first, count, page) {
+          const pool = yield* get(root)
+          return yield* Effect.try({
+            try: () => availableZoom(pool.memory, first, count, page),
+            catch: zoomFailure
+          }).pipe(Effect.flatMap(Effect.fromResult))
+        }),
+        readStatus: Effect.fn("MemoryManager.readStatus")(function* (root) {
+          const pool = yield* get(root)
+          return yield* read("readStatus", () => readingStatus(pool.memory))
+        })
       })
     })
   )

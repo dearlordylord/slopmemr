@@ -20,6 +20,7 @@ const env = {
   CODEX_HOME: profile,
   SLOPMEMR_RUNTIME_DIR: join(directory, "run"),
   SLOPMEMR_DATA_DIR: join(directory, "data"),
+  SLOPMEMR_BIN_DIR: join(directory, "bin"),
   OPENAI_API_KEY: undefined,
   CODEX_API_KEY: undefined,
   CODEX_ACCESS_TOKEN: undefined,

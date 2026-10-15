@@ -88,11 +88,11 @@ it.live("shares one public destination lock across different memory directories"
     const f = yield* Effect.promise(fixture)
     const started = yield* Deferred.make<void>(),
       release = yield* Deferred.make<void>()
-    const pending = f.prepare.pipe(
+    const after = Effect.void.pipe(
       Effect.tap(() => Deferred.succeed(started, undefined)),
       Effect.tap(() => Deferred.await(release))
     )
-    const first = yield* withPublicCommand(f.bin, f.data, pending).pipe(Effect.forkScoped)
+    const first = yield* withPublicCommand(f.bin, f.data, f.prepare, undefined, () => after).pipe(Effect.forkScoped)
     yield* Deferred.await(started)
     let secondPrepared = false
     const second = f.prepare.pipe(

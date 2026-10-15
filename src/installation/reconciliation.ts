@@ -30,7 +30,7 @@ const isOwned = (value: Schema.Json, command: string): boolean => {
     (candidate) => candidate === command || candidate === launcherPrefix || candidate.startsWith(launcherPrefix + " ")
   )
 }
-const canonical = (value: Schema.Json): Schema.Json => {
+export const canonical = (value: Schema.Json): Schema.Json => {
   if (Array.isArray(value)) return value.map(canonical)
   if (value !== null && typeof value === "object")
     return Object.fromEntries(

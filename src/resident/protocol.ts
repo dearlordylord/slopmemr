@@ -1,23 +1,31 @@
 import { Schema } from "effect"
 import { AppendResult, MemorySnapshot, ZoomResult, MemoryStatus, ProjectRoot } from "../memory/views.js"
-import { Ping } from "./identity.js"
+import { Ping, ServingIdentity } from "./identity.js"
 import { Append } from "../memory/contracts.js"
 import { AbsolutePath } from "../local-state/contracts.js"
 import { maximumSettleWaitMs } from "../memory/limits.js"
+import {
+  SnapshotInput,
+  ZoomInput,
+  StatusInput,
+  ReadCode,
+  AvailableSnapshot,
+  AvailableZoom,
+  ReadStatus
+} from "../memory/reading.js"
 
 const Root = AbsolutePath
 const Index = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))
 export const Request = Schema.TaggedUnion({
   Ping: {},
-  Shutdown: {},
+  Shutdown: { expected: Schema.optionalKey(ServingIdentity) },
   Append: Append.fields,
-  Snapshot: {
-    root: Root,
-    before: Schema.optionalKey(Index),
-    view: Schema.optionalKey(Schema.Literals(["main", "compaction"]))
-  },
-  Zoom: { root: Root, first: Index, count: Schema.Int.check(Schema.isGreaterThan(0)), page: Schema.optionalKey(Index) },
-  Status: { root: Root },
+  Snapshot: SnapshotInput.fields,
+  Zoom: ZoomInput.fields,
+  Status: StatusInput.fields,
+  ReadSnapshot: SnapshotInput.fields,
+  ReadZoom: ZoomInput.fields,
+  ReadStatus: StatusInput.fields,
   Settle: { root: Root, waitMs: Schema.optionalKey(Index.check(Schema.isLessThanOrEqualTo(maximumSettleWaitMs))) },
   Roots: {}
 })
@@ -32,10 +40,16 @@ export const responseSchemas: Readonly<Record<Request["_tag"], Schema.Constraint
   Snapshot: MemorySnapshot,
   Zoom: ZoomResult,
   Status: MemoryStatus,
+  ReadSnapshot: AvailableSnapshot,
+  ReadZoom: AvailableZoom,
+  ReadStatus,
   Settle: MemorySnapshot,
   Roots: RootsResult
 }
 export const ResponsePayload = Schema.Union([
+  AvailableSnapshot,
+  AvailableZoom,
+  ReadStatus,
   Ping,
   ShutdownResult,
   AppendResult,
@@ -44,7 +58,10 @@ export const ResponsePayload = Schema.Union([
   MemoryStatus,
   RootsResult
 ])
-export const Response = Schema.TaggedUnion({ Success: { value: ResponsePayload }, Failure: { message: Schema.String } })
+export const Response = Schema.TaggedUnion({
+  Success: { value: ResponsePayload },
+  Failure: { message: Schema.String, code: Schema.optionalKey(ReadCode), retryable: Schema.optionalKey(Schema.Boolean) }
+})
 export type Response = typeof Response.Type
 
 export { maxFrameBytes } from "./limits.js"

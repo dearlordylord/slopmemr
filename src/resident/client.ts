@@ -1,6 +1,6 @@
 import { createConnection } from "node:net"
 import { Effect, Schema } from "effect"
-import { TransportError, verifySocket } from "./endpoint.js"
+import { TransportError, verifySocket, verifyExistingSocket } from "./endpoint.js"
 import type { Endpoint } from "./endpoint.js"
 import { maxFrameBytes, Response, responseSchemas } from "./protocol.js"
 import type { Request } from "./protocol.js"
@@ -8,9 +8,10 @@ import type { Request } from "./protocol.js"
 export const request = Effect.fn("ResidentClient.request")(function* (
   paths: Endpoint,
   value: Request,
-  timeoutMs = 5_000
+  timeoutMs = 5_000,
+  passive = false
 ) {
-  yield* verifySocket(paths)
+  yield* passive ? verifyExistingSocket(paths) : verifySocket(paths)
   const frame = `${JSON.stringify(value)}\n`
   if (Buffer.byteLength(frame) > maxFrameBytes)
     return yield* Effect.fail(new TransportError({ message: "Request too large" }))

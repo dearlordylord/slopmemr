@@ -23,17 +23,20 @@ const Hook = {
 }
 
 export const Command = Schema.TaggedUnion({
-  Help: {},
+  Help: { topic: Schema.optionalKey(Schema.String) },
   Start: {},
   Resident: {},
   Stop: {},
+  Restart: {},
   Roots: {},
   Append: {},
   Request: {},
-  Setup: Host,
-  Update: Host,
+  Mcp: {},
+  Setup: { ...Host, target: Schema.optionalKey(AbsolutePath) },
+  Update: { ...Host, target: Schema.optionalKey(AbsolutePath) },
   Doctor: Host,
   Uninstall: Host,
+  Repair: Host,
   Hook,
   HookConfig: Hook,
   Snapshot: {
@@ -52,14 +55,17 @@ const tags: Readonly<Record<string, keyof typeof Command.cases>> = {
   start: "Start",
   resident: "Resident",
   stop: "Stop",
+  restart: "Restart",
   roots: "Roots",
   append: "Append",
   request: "Request",
+  mcp: "Mcp",
   setup: "Setup",
   install: "Setup",
   update: "Update",
   doctor: "Doctor",
   uninstall: "Uninstall",
+  repair: "Repair",
   hook: "Hook",
   "hook-config": "HookConfig",
   snapshot: "Snapshot",
@@ -67,8 +73,15 @@ const tags: Readonly<Record<string, keyof typeof Command.cases>> = {
   status: "Status",
   settle: "Settle"
 }
-const installerTags: ReadonlySet<keyof typeof Command.cases> = new Set(["Setup", "Update", "Doctor", "Uninstall"])
+const installerTags: ReadonlySet<keyof typeof Command.cases> = new Set([
+  "Setup",
+  "Update",
+  "Doctor",
+  "Uninstall",
+  "Repair"
+])
 const optionNames: ReadonlyArray<string> = [
+  "target",
   "root",
   "runtime",
   "profile",
@@ -101,7 +114,7 @@ export const parseCommand = Effect.fn("CLI.parseCommand")(function* (args: Reado
     try: () => parseArgs({ args: [...args], allowPositionals: true, options: supportedOptions }),
     catch: () => new CliError({ message: "Invalid options; run slopmemr help" })
   })
-  if (parsed.values.help === true) return Command.cases.Help.make({})
+  if (parsed.values.help === true) return helpCommand(parsed.positionals)
   const tag = tags[parsed.positionals[0] ?? "help"]
   if (tag === undefined) return yield* Effect.fail(new CliError({ message: "Unknown command; run slopmemr help" }))
   const positionals = installerTags.has(tag) ? parsed.positionals.slice(1) : []
@@ -128,6 +141,9 @@ export const parseCommand = Effect.fn("CLI.parseCommand")(function* (args: Reado
   })
   return command
 })
+
+const helpCommand = (positionals: ReadonlyArray<string>): Extract<Command, { _tag: "Help" }> =>
+  Command.cases.Help.make(positionals[0] === undefined ? {} : { topic: positionals[0] })
 
 const validateProfile = (command: Command): void => {
   if (!("runtime" in command)) return

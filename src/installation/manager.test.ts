@@ -1,6 +1,6 @@
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises"
+import { copyFile, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
-import { join, resolve } from "node:path"
+import { dirname, join, resolve } from "node:path"
 import { afterEach, expect } from "vitest"
 import { it } from "@effect/vitest"
 import { Effect } from "effect"
@@ -97,13 +97,11 @@ it.effect("recovers uninstall after hooks and launcher removal while preserving 
   Effect.gen(function* () {
     const f = yield* Effect.promise(fixture)
     yield* install(f.selection, f.source, f.data, false)
-    let removals = 0
     const files: InstallationFiles = {
       read: readOptional,
       write: writeAtomic,
       remove: (path) => {
-        removals += 1
-        if (removals === 2) throw new Error("Simulated ownership removal failure")
+        if (path === f.paths.ownership) throw new Error("Simulated ownership removal failure")
         removeOptional(path)
       }
     }
@@ -225,17 +223,20 @@ it.effect("rejects conflicting journal ownership and optimistic native-settings 
   })
 )
 
-it.effect("rebinds recovered installation to the current Node executable even when bundle bytes are identical", () =>
+it.effect("recovers after the source Node is removed because the snapshot owns its runtime", () =>
   Effect.gen(function* () {
     const f = yield* Effect.promise(fixture)
     const oldNode = join(f.selection.profile, "old-node")
-    yield* Effect.promise(() => writeFile(oldNode, "#!/bin/sh\nexit 1\n", { mode: 0o700 }))
+    yield* Effect.promise(() => copyFile(process.execPath, oldNode))
+    yield* Effect.promise(() =>
+      copyFile(join(dirname(dirname(process.execPath)), "LICENSE"), join(f.selection.profile, "NODE_LICENSE"))
+    )
     yield* install(f.selection, { ...f.source, executable: oldNode }, f.data, false, undefined, () =>
       Effect.fail(new InstallationError({ operation: "activate", message: "Interrupted" }))
     ).pipe(Effect.exit)
     yield* Effect.promise(() => rm(oldNode))
     const installed = yield* install(f.selection, f.source, f.data, false)
-    expect(installed.snapshot.launch.executable).toBe(process.execPath)
+    expect(installed.snapshot.launch.executable).toBe(join(installed.snapshot.directory, "node"))
     expect(readOptional(f.paths.launcher)).not.toContain(oldNode)
     expect(yield* doctor(f.selection)).toMatchObject({ registration: "ready", runtimeAvailable: true })
   })

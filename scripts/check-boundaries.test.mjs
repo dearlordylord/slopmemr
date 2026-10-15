@@ -48,3 +48,14 @@ test("rejects a cycle within one slice even if every edge is type-only", () => {
   )
   ok(violations.some((value) => value.includes("Dependency cycle")))
 })
+
+test("rejects resident implementations in the hook even through a lazy dependency", () => {
+  const violations = checkBoundaries(
+    new Map([
+      ["intake/main.ts", 'import("../resident/server.js")'],
+      ["resident/server.ts", 'import "node:sqlite"']
+    ])
+  )
+  ok(violations.some((value) => value.includes("hook closure reaches forbidden implementation")))
+  ok(violations.some((value) => value.includes("restricted closure reaches node:sqlite")))
+})

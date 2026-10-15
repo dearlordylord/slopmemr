@@ -1,0 +1,312 @@
+{
+  "platform": "linux",
+  "arch": "arm64",
+  "environment": {
+    "node": "v24.20.0",
+    "osRelease": "7.0.14-orbstack-00380-ga7e0a2dc9535",
+    "cpuModel": "unknown",
+    "cpuCount": 12,
+    "loadAtStart": [
+      11.12,
+      8.83,
+      6.02
+    ]
+  },
+  "artifactDigests": {
+    "application": "slopmemr",
+    "format": 1,
+    "version": "0.1.0",
+    "platform": "linux",
+    "arch": "arm64",
+    "cli": {
+      "digest": "e7bba0adb8153da6aedbdb6c20ee2122826891dfda347e54f26be76e1a7f29a3"
+    },
+    "hook": {
+      "digest": "e029d03b025dd50798b32f70ab751b7a5b726f5643255db5247434eaf49a3fea"
+    },
+    "runtime": {
+      "digest": "23a5637c2470fde09fcc1acc77c1b92e04e3d7e3e6e80ff7df6f5831958d1477"
+    },
+    "notices": {
+      "digest": "910e4f3ba0d33ac64b891feaac6547352596e556a3feb2942f9b827d0a7ec3d9"
+    },
+    "runtimeNotices": {
+      "digest": "5888dbb9a1d2b18f2c3e6c5f6af1b39de658372b402a0577b002777f14c62ace"
+    }
+  },
+  "conditions": "Real installed hook; durable acknowledgement; repeated identical 4KiB prompt with replay identity; fresh resident, filesystem cache uncontrolled; synthetic Claude backend, no paid inference",
+  "hook": {
+    "cold": [
+      {
+        "elapsedMs": 268.221405,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 191.89068299999997,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 210.63105400000018,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 193.0914560000001,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 192.29960699999992,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 191.33783799999992,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 200.86631799999986,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 194.77407300000004,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 189.45479999999998,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 203.07102899999973,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      }
+    ],
+    "warm": [
+      {
+        "elapsedMs": 71.98571999999967,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 65.2601279999999,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 69.772426,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 78.73010300000033,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 67.0324129999999,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 65.43950600000016,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 67.29104300000017,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 69.74205000000029,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 68.35081500000024,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 72.81457,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 67.29120999999941,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 68.46360800000002,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 68.86453299999994,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 66.8902850000004,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 68.43935800000054,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 68.0845589999999,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 68.6683210000001,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 66.93716199999926,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 69.57496399999945,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 135.5956900000001,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 109.9948489999997,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 70.95969999999943,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 66.53840300000047,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 68.57173500000044,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 70.51994099999956,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 80.63030900000012,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 79.10140300000057,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 76.4865179999997,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 76.93815199999972,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      },
+      {
+        "elapsedMs": 71.86838399999942,
+        "exit": 0,
+        "signal": null,
+        "acknowledged": true
+      }
+    ],
+    "unavailable": [
+      {
+        "elapsedMs": 2564.949101,
+        "exit": 1,
+        "signal": null,
+        "acknowledged": false
+      },
+      {
+        "elapsedMs": 2566.9783079999997,
+        "exit": 1,
+        "signal": null,
+        "acknowledged": false
+      },
+      {
+        "elapsedMs": 2579.8704799999996,
+        "exit": 1,
+        "signal": null,
+        "acknowledged": false
+      }
+    ],
+    "coldP95Ms": 268.221405,
+    "warmP95Ms": 109.9948489999997
+  },
+  "complete": true,
+  "mcpCliParity": true,
+  "eofResidentSurvival": true,
+  "liveUpdate": true,
+  "sourcePackageRemoval": true,
+  "memoryPreserved": true
+}

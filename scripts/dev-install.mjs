@@ -4,7 +4,7 @@ import { homedir } from "node:os"
 import { join, resolve } from "node:path"
 import { Effect, Schema } from "effect"
 import { Doctor, Snapshot, InstallationError } from "../dist/installation/contracts.js"
-import { withPublicCommand } from "../dist/installation/public-command.js"
+
 const rawArguments = process.argv.slice(2).filter((value) => value !== "--")
 const command = rawArguments.includes("--update") ? "update" : "setup"
 const argumentsList = rawArguments.filter((value) => value !== "--update")
@@ -38,13 +38,8 @@ const prepare = Effect.try({
     })
 })
 try {
-  const result = await Effect.runPromise(
-    withPublicCommand(
-      join(homedir(), ".local", "bin"),
-      process.env.SLOPMEMR_DATA_DIR ?? join(homedir(), ".local", "share", "slopmemr"),
-      prepare
-    )
-  )
+  await Effect.runPromise(prepare)
+  const result = { path: join(homedir(), ".local", "bin", "slopmemr") }
   process.stdout.write(`Installed ${result.path}. Native hooks start memory automatically.\n`)
 } catch {
   process.stderr.write("Cannot install slopmemr safely: inspect the selected profile and public command ownership.\n")

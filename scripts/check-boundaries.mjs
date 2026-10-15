@@ -11,9 +11,10 @@ const allowed = {
   compaction: ["local-state"],
   memory: ["compaction", "project-root", "local-state"],
   resident: ["memory", "local-state", "project-root"],
-  intake: ["memory", "compaction"],
+  intake: ["memory", "compaction", "resident", "local-state"],
   installation: ["intake", "local-state"],
-  cli: ["resident", "memory", "compaction", "intake", "project-root", "local-state", "installation"]
+  mcp: ["memory", "resident", "local-state"],
+  cli: ["resident", "memory", "compaction", "intake", "project-root", "local-state", "installation", "mcp"]
 }
 
 const walk = (directory) =>
@@ -96,17 +97,34 @@ export const checkBoundaries = (sources) => {
   }
   for (const file of sources.keys()) visitCycle(file, [])
   // Exact client/intake closures must stay free of persistence and execution.
-  for (const entry of ["resident/client.ts", "intake/hook.ts"]) {
+  for (const entry of ["resident/client.ts", "intake/hook.ts", "intake/main.ts"]) {
     const seen = new Set()
     const visit = (file) => {
       if (seen.has(file)) return
       seen.add(file)
       for (const specifier of external.get(file) ?? []) {
-        if (["node:sqlite", "node:child_process", "@firfi/unii", "@effect/platform-node"].includes(specifier)) {
+        const forbidden =
+          entry === "intake/main.ts"
+            ? ["node:sqlite", "@firfi/unii"]
+            : ["node:sqlite", "node:child_process", "@firfi/unii", "@effect/platform-node"]
+        if (forbidden.includes(specifier)) {
           violations.push(`${entry}: restricted closure reaches ${specifier} through ${file}`)
         }
       }
-      for (const target of edges.get(file) ?? []) visit(target)
+      for (const target of edges.get(file) ?? []) {
+        if (
+          entry === "intake/main.ts" &&
+          (target === "resident/server.ts" ||
+            target === "memory/manager.ts" ||
+            target === "memory/storage.ts" ||
+            target.startsWith("mcp/") ||
+            target.startsWith("installation/") ||
+            target.startsWith("cli/") ||
+            (target.startsWith("compaction/") && target !== "compaction/profile.ts"))
+        )
+          violations.push(`${entry}: hook closure reaches forbidden implementation ${target}`)
+        visit(target)
+      }
     }
     if (sources.has(entry)) visit(entry)
   }

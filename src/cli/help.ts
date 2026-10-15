@@ -1,9 +1,13 @@
 export const help = `slopmemr — project memory for coding agents
 
-  setup codex|claude [--profile PATH]
-                                   Install hooks; the first hook starts memory automatically
-  update codex|claude               Update the selected profile's installed runtime
+  install codex|claude [--profile PATH]
+                                   Install hooks and MCP; the first hook starts memory automatically
+  update codex|claude [--target PACKAGE]
+                                   Install the supplied package and switch a running resident
   doctor codex|claude               Inspect registration without starting memory or inference
+  repair codex|claude               Restore missing owned registration; reject modified files
+  restart                          Gracefully restart the selected resident
+  mcp                              Serve four memory-reading tools over stdio
   uninstall codex|claude            Remove our hooks; preserve project memory
   roots                            List persisted project memory pools
   status --root PATH                Show coverage and compaction failures

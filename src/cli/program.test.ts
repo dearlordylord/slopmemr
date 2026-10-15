@@ -4,6 +4,9 @@ import { join, resolve } from "node:path"
 import { expect, afterEach } from "vitest"
 import { it } from "@effect/vitest"
 import { Console, ConfigProvider, Effect, Fiber, Schedule } from "effect"
+import { program as fastHook } from "../intake/program.js"
+import { deliver } from "../installation/delivery.js"
+import { InstallationError } from "../installation/contracts.js"
 import { program } from "./program.js"
 import { CliError } from "./errors.js"
 import { printJson, reportFailure } from "./output.js"
@@ -62,6 +65,7 @@ const fixture = async () => {
     ConfigProvider.fromEnvRecord({
       SLOPMEMR_RUNTIME_DIR: paths.directory,
       SLOPMEMR_DATA_DIR: join(directory, "data"),
+      SLOPMEMR_BIN_DIR: join(directory, "bin"),
       CODEX_HOME: profile
     })
   )
@@ -77,6 +81,38 @@ it.live("runs the full CLI workflow against its scoped resident using explicit i
       yield* request(f.paths, { _tag: "Ping" }).pipe(
         Effect.retry(Schedule.recurs(100).pipe(Schedule.addDelay(() => Effect.succeed(10))))
       )
+      for (const runtime of ["codex", "claude"]) {
+        for (const event of ["SessionStart", "Stop", "UserPromptSubmit"]) {
+          yield* fastHook(
+            ["--runtime", runtime],
+            launch,
+            input({ hook_event_name: event, session_id: `fast-${runtime}`, cwd: f.root })
+          )
+        }
+      }
+      yield* fastHook(
+        [
+          "--runtime",
+          "codex",
+          "--codex-home",
+          f.profile,
+          "--root",
+          f.root,
+          "--resident-bin",
+          launch.executable,
+          "--resident-entry",
+          launch.entrypoint
+        ],
+        launch,
+        input({ hook_event_name: "Stop", session_id: "explicit", cwd: f.root })
+      )
+      yield* fastHook(
+        ["--runtime", "claude", "--claude-home", f.profile],
+        launch,
+        input({ hook_event_name: "Stop", session_id: "explicit", cwd: f.root })
+      )
+      const unavailable = yield* request(f.paths, { _tag: "ReadSnapshot", root: join(f.directory, "missing-root") })
+      expect(unavailable).toMatchObject({ _tag: "Failure", code: "ROOT_UNAVAILABLE", retryable: false })
       const run = (args: ReadonlyArray<string>, value: unknown = {}) => program(args, launch, input(value))
       yield* run(["help"])
       yield* run(["start"])
@@ -97,8 +133,22 @@ it.live("runs the full CLI workflow against its scoped resident using explicit i
       yield* run(["hook", "--runtime", "claude"], { ...hook, hook_event_name: "UserPromptSubmit", prompt: "short" })
       yield* run(["hook-config", "--runtime", "codex"])
       yield* run(["hook-config", "--runtime", "claude", "--root", f.root, "--claude-home", f.profile])
+      yield* run(["stop"])
+      yield* Fiber.join(foreground)
       yield* run(["setup", "claude", "--profile", f.profile])
+      yield* run(["repair", "claude", "--profile", f.profile])
+      const interrupted = yield* deliver(
+        { action: "Setup", publicDirectory: join(f.directory, "bin") },
+        { runtime: "claude", profile: f.profile },
+        launch,
+        join(f.directory, "data"),
+        () => Effect.void,
+        () => Effect.fail(new InstallationError({ operation: "test", message: "interrupt before activation" }))
+      ).pipe(Effect.exit)
+      expect(interrupted._tag).toBe("Failure")
+      yield* run(["repair", "claude", "--profile", f.profile])
       yield* run(["update", "claude", "--profile", f.profile, "--claude-home", f.profile])
+      yield* run(["restart"])
       yield* run(["doctor", "claude", "--profile", f.profile])
       yield* run(["uninstall", "claude", "--profile", f.profile])
       yield* run(["stop"])

@@ -1,5 +1,5 @@
 import { Schema } from "effect"
-import { Digest } from "../local-state/contracts.js"
+import { AbsolutePath, Digest } from "../local-state/contracts.js"
 import { residentProtocolVersion } from "./limits.js"
 
 export const applicationName = "slopmemr"
@@ -12,6 +12,19 @@ export const Identity = Schema.Struct({
 export type Identity = typeof Identity.Type
 export const Ping = Schema.Struct({
   ...Identity.fields,
+  guardedShutdown: Schema.optionalKey(Schema.Literal(true)),
   protocol: Schema.Literal(residentProtocolVersion),
-  pid: Schema.Int.check(Schema.isGreaterThan(0))
+  pid: Schema.Int.check(Schema.isGreaterThan(0)),
+  entrypoint: Schema.optionalKey(AbsolutePath),
+  executable: Schema.optionalKey(AbsolutePath),
+  dataDirectory: Schema.optionalKey(AbsolutePath)
+})
+
+export const ServingIdentity = Schema.Struct({
+  ...Identity.fields,
+  protocol: Ping.fields.protocol,
+  pid: Ping.fields.pid,
+  entrypoint: AbsolutePath,
+  executable: AbsolutePath,
+  dataDirectory: AbsolutePath
 })

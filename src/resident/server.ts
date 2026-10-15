@@ -1,3 +1,4 @@
+import { readSelection, selectionFiles } from "../local-state/runtime-selection.js"
 import { createHash } from "node:crypto"
 import { createServer, createConnection } from "node:net"
 import type { Server, Socket } from "node:net"
@@ -7,22 +8,32 @@ import { join } from "node:path"
 import { Effect, Layer, Schema, Semaphore } from "effect"
 import { otherUserPermissions } from "../local-state/contracts.js"
 import { endpointProbeMs, defaultConnectionLimit, frameDeadlineMs } from "./limits.js"
-import type { MemoryError } from "../memory/contracts.js"
-import type { RootError } from "../project-root/root.js"
+import { MemoryError } from "../memory/contracts.js"
+import { RootError } from "../project-root/root.js"
+import { MemoryReadError } from "../memory/reading.js"
 import { MemoryManager } from "../memory/manager.js"
 import { maxFrameBytes, Request, Response, ResponsePayload } from "./protocol.js"
 import { prepare, secureSocket, TransportError } from "./endpoint.js"
 import { applicationName, applicationVersion } from "./identity.js"
-import type { Identity } from "./identity.js"
+import type { Identity, ServingIdentity } from "./identity.js"
 import type { Endpoint } from "./endpoint.js"
 
-const dispatch = Effect.fn("Resident.dispatch")(function* (request: Request, identity: Identity) {
+const dispatch = Effect.fn("Resident.dispatch")(function* (
+  request: Request,
+  identity: Identity,
+  runtime: Options["runtime"]
+) {
   const memory = yield* MemoryManager
   const handlers: {
-    [K in Request["_tag"]]: (input: Extract<Request, { _tag: K }>) => Effect.Effect<unknown, MemoryError | RootError>
+    [K in Request["_tag"]]: (
+      input: Extract<Request, { _tag: K }>
+    ) => Effect.Effect<unknown, MemoryError | RootError | MemoryReadError | TransportError>
   } = {
-    Ping: () => Effect.succeed({ ...identity, protocol: 1, pid: process.pid }),
-    Shutdown: () => Effect.succeed({ stopping: true }),
+    Ping: () => Effect.succeed({ ...identity, ...runtime, guardedShutdown: true, protocol: 1, pid: process.pid }),
+    Shutdown: (input) =>
+      input.expected === undefined || shutdownMatches(input.expected, identity, runtime)
+        ? Effect.succeed({ stopping: true })
+        : Effect.fail(new TransportError({ message: "Shutdown identity changed; refusing to stop this resident" })),
     Append: (input: Extract<Request, { _tag: "Append" }>) => memory.append(input),
     Snapshot: (input: Extract<Request, { _tag: "Snapshot" }>) =>
       memory.snapshot(input.root, {
@@ -31,6 +42,10 @@ const dispatch = Effect.fn("Resident.dispatch")(function* (request: Request, ide
       }),
     Zoom: (input: Extract<Request, { _tag: "Zoom" }>) => memory.zoom(input.root, input.first, input.count, input.page),
     Status: (input: Extract<Request, { _tag: "Status" }>) => memory.status(input.root),
+    ReadSnapshot: (input: Extract<Request, { _tag: "ReadSnapshot" }>) => memory.readSnapshot(input.root, input),
+    ReadZoom: (input: Extract<Request, { _tag: "ReadZoom" }>) =>
+      memory.readZoom(input.root, input.first, input.count, input.page),
+    ReadStatus: (input: Extract<Request, { _tag: "ReadStatus" }>) => memory.readStatus(input.root),
     Settle: (input: Extract<Request, { _tag: "Settle" }>) => memory.settle(input.root, input.waitMs),
     Roots: () => memory.roots()
   }
@@ -42,6 +57,7 @@ export interface Options {
   readonly endpoint: Endpoint
   readonly maxConnections?: number
   readonly onShutdown?: () => void
+  readonly runtime?: { readonly entrypoint: string; readonly executable: string; readonly dataDirectory: string }
 }
 
 // The lifetime lock prevents racing starters from unlinking each other's socket.
@@ -121,6 +137,10 @@ export const layer = (options: Options) =>
         (db) => Effect.sync(() => db.close())
       )
       void ownership
+      yield* Effect.try({
+        try: () => verifySelectedOwner(options, options.identity ?? defaultIdentity),
+        catch: () => new TransportError({ message: "This build is no longer the selected resident" })
+      })
       const server = createServer((socket) => {
         if (sockets.size >= limit || accepted.size >= limit) {
           socket.destroy()
@@ -178,22 +198,18 @@ export const layer = (options: Options) =>
           }
           // Accepted writes outlive client disconnect. Shutdown drains this bounded
           // set before the manager layer releases its storage and cancels jobs.
-          const operation = operations.withPermit(dispatch(request, options.identity ?? defaultIdentity)).pipe(
-            Effect.timeout("30 seconds"),
-            Effect.provide(context),
-            Effect.flatMap((value) => Schema.decodeUnknownEffect(ResponsePayload)(value)),
-            Effect.map((value) => Response.cases.Success.make({ value })),
-            Effect.catch(() =>
-              Effect.succeed(
-                Response.cases.Failure.make({
-                  message: "Memory operation failed; inspect resident status or retry the event"
-                })
-              )
+          const operation = operations
+            .withPermit(dispatch(request, options.identity ?? defaultIdentity, options.runtime))
+            .pipe(
+              Effect.timeout("30 seconds"),
+              Effect.provide(context),
+              Effect.flatMap((value) => Schema.decodeUnknownEffect(ResponsePayload)(value)),
+              Effect.map((value) => Response.cases.Success.make({ value })),
+              Effect.catch((error) => Effect.succeed(operationFailure(error)))
             )
-          )
           const task = Effect.runPromise(operation)
             .then(
-              (value) => respond(value, request._tag === "Shutdown"),
+              (value) => respond(value, request._tag === "Shutdown" && value._tag === "Success"),
               () => respond(Response.cases.Failure.make({ message: "Resident operation failed" }))
             )
             .finally(() => {
@@ -223,8 +239,46 @@ export const layer = (options: Options) =>
     })
   )
 
+const operationFailure = (error: unknown): Extract<Response, { _tag: "Failure" }> => {
+  if (error instanceof MemoryReadError)
+    return Response.cases.Failure.make({ code: error.code, message: error.message, retryable: error.retryable })
+  if (rootFailure(error))
+    return Response.cases.Failure.make({
+      code: "ROOT_UNAVAILABLE",
+      message: "Cannot open the requested project memory",
+      retryable: false
+    })
+  return Response.cases.Failure.make({ message: "Memory operation failed; inspect resident status or retry the event" })
+}
+
 const defaultIdentity: Identity = {
   application: applicationName,
   version: applicationVersion,
   implementation: createHash("sha256").update(`${applicationName}/${applicationVersion}`).digest("hex")
 }
+
+const verifySelectedOwner = (options: Options, identity: Identity): void => {
+  if (options.runtime === undefined) return
+  const selected = readSelection(options.runtime.dataDirectory, selectionFiles)
+  if (selected === undefined) return
+  if (
+    selected.implementation !== identity.implementation ||
+    selected.launch.entrypoint !== options.runtime.entrypoint ||
+    selected.launch.executable !== options.runtime.executable
+  )
+    throw new Error("Superseded resident target")
+}
+
+const rootFailure = (error: unknown): boolean =>
+  error instanceof RootError || (error instanceof MemoryError && error.operation === "open")
+
+const shutdownMatches = (
+  expected: typeof ServingIdentity.Type,
+  identity: Identity,
+  runtime: Options["runtime"]
+): boolean =>
+  expected.pid === process.pid &&
+  expected.implementation === identity.implementation &&
+  expected.entrypoint === runtime?.entrypoint &&
+  expected.executable === runtime?.executable &&
+  expected.dataDirectory === runtime?.dataDirectory

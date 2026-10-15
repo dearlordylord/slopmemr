@@ -1,13 +1,17 @@
 import { chmod, lstat } from "node:fs/promises"
+import type { Stats } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, isAbsolute } from "node:path"
 import { Effect, Schema } from "effect"
 import { privateDirectory } from "../local-state/private-directory.js"
 import { AbsolutePath, otherUserPermissions, privateFileMode } from "../local-state/contracts.js"
 import { maximumSocketBytes } from "./limits.js"
+import { ReadCode } from "../memory/reading.js"
 
 export class TransportError extends Schema.TaggedError<TransportError>()("TransportError", {
-  message: Schema.String
+  message: Schema.String,
+  code: Schema.optionalKey(ReadCode),
+  retryable: Schema.optionalKey(Schema.Boolean)
 }) {}
 
 export const Endpoint = Schema.Struct({ directory: AbsolutePath, socket: AbsolutePath })
@@ -34,19 +38,22 @@ export const prepare = Effect.fn("Resident.prepareEndpoint")(function* (paths: E
 
 export const verifySocket = Effect.fn("Resident.verifySocket")(function* (paths: Endpoint) {
   yield* prepare(paths)
-  return yield* Effect.tryPromise({
+  yield* verifyExistingSocket(paths)
+})
+
+const privateOwned = (stat: Stats): boolean =>
+  (stat.mode & otherUserPermissions) === 0 && (process.getuid === undefined || stat.uid === process.getuid())
+export const verifyExistingSocket = Effect.fn("Resident.verifyExistingSocket")((paths: Endpoint) =>
+  Effect.tryPromise({
     try: async () => {
+      const directory = await lstat(paths.directory)
+      if (!directory.isDirectory() || directory.isSymbolicLink() || !privateOwned(directory))
+        throw new Error("Unsafe socket directory")
       const stat = await lstat(paths.socket)
-      if (
-        !stat.isSocket() ||
-        stat.isSymbolicLink() ||
-        (stat.mode & otherUserPermissions) !== 0 ||
-        (process.getuid !== undefined && stat.uid !== process.getuid())
-      )
-        throw new Error("Unsafe socket")
+      if (!stat.isSocket() || stat.isSymbolicLink() || !privateOwned(stat)) throw new Error("Unsafe socket")
     },
     catch: () => new TransportError({ message: "Resident socket unavailable or unsafe" })
   })
-})
+)
 
 export const secureSocket = (paths: Endpoint) => chmod(paths.socket, privateFileMode)

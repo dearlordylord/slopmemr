@@ -3,21 +3,26 @@ import { join } from "node:path"
 import { Effect, Schema } from "effect"
 import { AbsolutePath, Digest, privateDirectoryMode } from "../local-state/contracts.js"
 import { privateDirectory } from "../local-state/private-directory.js"
-import { launchCommand } from "../local-state/process-launch.js"
+import { launchCommand, shellQuote } from "../local-state/process-launch.js"
 import { InstallationError, Snapshot } from "./contracts.js"
 import { contentDigest } from "./binding.js"
 import { exclusive, readOptional, removeOptional, writeAtomic } from "./files.js"
 import type { InstallationFiles } from "./manager.js"
 
-const PublicRecord = Schema.Struct({ path: AbsolutePath, digest: Digest, snapshot: Snapshot })
+const PublicRecord = Schema.Struct({
+  path: AbsolutePath,
+  digest: Digest,
+  snapshot: Snapshot,
+  binDirectory: Schema.optionalKey(AbsolutePath)
+})
 type PublicRecord = typeof PublicRecord.Type
 const PublicOperation = Schema.Struct({ next: PublicRecord, previous: Schema.optionalKey(PublicRecord) })
 const publicExecutableMode = 0o700
 const writableByOthers = 0o022
 const filesLive: InstallationFiles = { read: readOptional, write: writeAtomic, remove: removeOptional }
 const encode = (value: unknown): string => JSON.stringify(value) + "\n"
-const content = (snapshot: Snapshot): string =>
-  `#!/bin/sh\n# slopmemr-public-launcher-1\nexec ${launchCommand(snapshot.launch)} "$@"\n`
+const content = (snapshot: Snapshot, binDirectory?: string): string =>
+  `#!/bin/sh\n# slopmemr-public-launcher-1\n${binDirectory === undefined ? "" : `export SLOPMEMR_BIN_DIR=${shellQuote(binDirectory)}\n`}${snapshot.dataDirectory === undefined ? "" : `export SLOPMEMR_DATA_DIR=${shellQuote(snapshot.dataDirectory)}\n`}exec ${launchCommand(snapshot.launch)} "$@"\n`
 
 const prepareDirectory = (directory: string): void => {
   mkdirSync(directory, { recursive: true, mode: privateDirectoryMode })
@@ -36,7 +41,7 @@ const prepareDirectory = (directory: string): void => {
 const decodeRecord = (text: string | undefined): PublicRecord | undefined =>
   text === undefined ? undefined : Schema.decodeSync(Schema.fromJsonString(PublicRecord))(text)
 const validateRecord = (record: PublicRecord, path: string): void => {
-  if (record.path !== path || record.digest !== contentDigest(content(record.snapshot)))
+  if (record.path !== path || record.digest !== contentDigest(content(record.snapshot, record.binDirectory)))
     throw new InstallationError({
       operation: "public-command",
       message: "Public command ownership does not match its binding"
@@ -62,17 +67,18 @@ const publish = (
   const accepted = [operation.next.digest, operation.previous?.digest]
   if (existing !== undefined && !accepted.includes(contentDigest(existing)))
     throw new InstallationError({ operation: "public-command", message: "Public launcher changed during publication" })
-  files.write(operation.next.path, content(operation.next.snapshot), publicExecutableMode)
+  files.write(operation.next.path, content(operation.next.snapshot, operation.next.binDirectory), publicExecutableMode)
   files.write(state, encode(operation.next))
   files.remove(journal)
 }
 
 /** Serialize public-command publishers, preflight before profile changes, and recover atomic publication. */
-export const withPublicCommand = Effect.fn("Installation.publicCommand")(function* <R>(
+export const withPublicCommand = Effect.fn("Installation.publicCommand")(function* <R, E = never>(
   directory: string,
   dataDirectory: string,
   prepare: Effect.Effect<Snapshot, InstallationError, R>,
-  files: InstallationFiles = filesLive
+  files: InstallationFiles = filesLive,
+  after?: (snapshot: Snapshot) => Effect.Effect<void, E, R>
 ) {
   return yield* Effect.scoped(
     Effect.gen(function* () {
@@ -106,7 +112,12 @@ export const withPublicCommand = Effect.fn("Installation.publicCommand")(functio
       const snapshot = yield* prepare
       yield* Effect.try({
         try: () => {
-          const next: PublicRecord = { path, digest: contentDigest(content(snapshot)), snapshot }
+          const next: PublicRecord = {
+            path,
+            digest: contentDigest(content(snapshot, directory)),
+            snapshot,
+            binDirectory: directory
+          }
           const operation = { next, ...(previous === undefined ? {} : { previous }) }
           validateTarget(files.read(path), previous)
           files.write(journal, encode(operation))
@@ -114,7 +125,8 @@ export const withPublicCommand = Effect.fn("Installation.publicCommand")(functio
         },
         catch: failure
       })
-      return { path, snapshotDigest: snapshot.digest }
+      if (after !== undefined) yield* after(snapshot)
+      return { path, snapshotDigest: snapshot.digest, snapshot }
     })
   )
 })

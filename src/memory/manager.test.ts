@@ -141,7 +141,7 @@ it.effect("pins compression auth to source records and supports summary-to-origi
       expect(zoom.text).toBe("α".repeat(16))
       expect(zoom.pages).toBe(13)
       expect((yield* manager.zoom(options.root, 0, 2)).text).toContain("0+1|summary")
-      expect((yield* manager.zoom(options.root, 1, 2).pipe(Effect.flip))._tag).toBe("MemoryError")
+      expect((yield* manager.zoom(options.root, 1, 2).pipe(Effect.flip))._tag).toBe("MemoryReadError")
     }).pipe(
       Effect.provide(layer({ ...options, policy: { nodeBytes: 64, pageBytes: 32 } }).pipe(Layer.provide(compactor)))
     )

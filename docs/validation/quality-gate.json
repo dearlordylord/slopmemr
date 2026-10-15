@@ -5,14 +5,14 @@
   "typescript": "7.0.2",
   "effect": "4.0.3",
   "effectDiagnostics": {
-    "checkedFiles": 64,
+    "checkedFiles": 101,
     "errors": 0,
     "warnings": 0
   },
   "crap4ts": {
     "version": "1.1.0",
     "threshold": 8,
-    "functionCount": 416,
+    "functionCount": 647,
     "maximumScore": 8.0,
     "unknownFunctions": 0,
     "breaches": 0,
@@ -20,8 +20,8 @@
     "percentageThresholds": false
   },
   "tests": {
-    "files": 18,
-    "passed": 181,
+    "files": 30,
+    "passed": 217,
     "failed": 0
   },
   "dependencyCycles": 0,
@@ -33,7 +33,7 @@
     "passed": 2,
     "failed": 0
   },
-  "review": "Iterative Astra source review; auth migration and process-group cleanup findings fixed and regression-tested; final re-review found no further substantive defects in scope.",
+  "review": "Three bounded corrective Standards/Spec passes; final pass reports zero actionable findings on each axis. Typed memory reads, complete snapshot metadata, schema-owned CLI responses, durable delivery recovery and independent component diagnostics regression-tested.",
   "projectIdentity": {
     "file": ".slopmemr-id",
     "relocation": "passed in tests and installed bundle",
@@ -52,5 +52,6 @@
     "liveClaudeCompaction": "docs/validation/claude-compaction.json",
     "legacyForeignAuth": "discarded for inference; explicit same-runtime fallback required",
     "layerDisposal": "active Claude process terminates before attempt timeout"
-  }
+  },
+  "packageWitness": "docs/validation/package-memory-reading.json"
 }
