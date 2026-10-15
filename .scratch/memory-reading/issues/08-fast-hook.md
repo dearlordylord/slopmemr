@@ -3,7 +3,7 @@
 Parent: ../map.md
 Type: research
 Label: wayfinder:research
-Status: closed — research complete; implementation not started
+Status: closed — research and implementation complete; acceptance in docs/validation/memory-reading-review.md
 Blocked by: none
 
 ## Question

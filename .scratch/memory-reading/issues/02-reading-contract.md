@@ -3,7 +3,7 @@
 Parent: ../map.md
 Type: grilling
 Label: wayfinder:grilling
-Status: resolved
+Status: closed — research and implementation complete; acceptance in docs/validation/memory-reading-review.md
 Assignee: /root
 Blocked by: 01
 

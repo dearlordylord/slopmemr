@@ -12,7 +12,7 @@ slopmemr runs one local resident per operating-system user. Coding agents contri
 
 ## Install
 
-For a ready-made package, unpack the matching archive and run `./bin/slopmemr install codex` or `./bin/slopmemr install claude`. Node is included. The calling runtime’s installed CLI and subscription login are needed for compaction. Release publication is pending; `pnpm package` builds an archive for the current platform.
+For a ready-made package, unpack the matching archive and run `./bin/slopmemr install codex` or `./bin/slopmemr install claude`. Node is included. The calling runtime’s installed CLI and subscription login are needed for compaction. Download packages from [GitHub Releases](https://github.com/dearlordylord/slopmemr/releases). The initial release targets Linux arm64; other platforms have not been validated. `pnpm package` builds an archive for the current platform.
 
 For development, use Node 24 on Linux or macOS, pnpm and Git. Keep `../unii` beside this checkout for the build:
 
