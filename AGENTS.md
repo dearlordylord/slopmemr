@@ -8,6 +8,8 @@ Read `docs/installation.md` before changing setup, update, recovery or removal.
 
 ## Required workflow
 
+For creating tasks, planning work or updating completion status, use GitHub Issues as configured in `docs/agents/issue-tracker.md`.
+
 Use pnpm and the exact dependency cohort in package.json. Consult the pinned Effect sources before selecting an API.
 Run `pnpm check-all` after implementation. A task is complete only when every gate succeeds and relevant built-artifact evidence exists.
 Report failing gates and the evidence actually collected; never describe a partial or skipped run as passing.
