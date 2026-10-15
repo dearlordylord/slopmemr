@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto"
 import { Schema } from "effect"
+import { memoryToolNames } from "../memory/tool-names.js"
 import { Append } from "../memory/contracts.js"
 import type { AuthReference } from "../compaction/profile.js"
 import { HookEvent, hookEvents, hookTimeoutSeconds } from "./events.js"
@@ -20,6 +21,14 @@ export const Hook = Schema.Struct({
   last_assistant_message: Schema.optionalKey(Schema.NullOr(Schema.String))
 })
 export type Hook = typeof Hook.Type
+
+const ownMemoryReadCalls: ReadonlySet<string> = new Set(
+  Object.values(memoryToolNames).map((name) => `mcp__slopmemr__${name}`)
+)
+
+/** Native Codex and Claude qualify MCP calls with their server and tool identity. */
+export const shouldCapture = (event: Hook): boolean =>
+  event.hook_event_name !== "PostToolUse" || !ownMemoryReadCalls.has(event.tool_name ?? "")
 
 export interface Options {
   readonly runtime: Runtime

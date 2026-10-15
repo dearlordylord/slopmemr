@@ -3,7 +3,7 @@ import { AbsolutePath, Digest } from "../local-state/contracts.js"
 import { residentProtocolVersion } from "./limits.js"
 
 export const applicationName = "slopmemr"
-export const applicationVersion = "0.1.2"
+export const applicationVersion = "0.1.3"
 export const Identity = Schema.Struct({
   application: Schema.Literal(applicationName),
   version: Schema.NonEmptyString,

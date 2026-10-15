@@ -1,4 +1,5 @@
 import { mkdtemp, mkdir, rm, symlink } from "node:fs/promises"
+import { existsSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { expect, afterEach } from "vitest"
@@ -224,5 +225,29 @@ it.effect("sanitizes errors and bounds streaming stdin without logging source in
       )
     ).toEqual({ valid: true })
     expect((yield* printJson(undefined).pipe(Effect.exit))._tag).toBe("Failure")
+  })
+)
+
+it.live("own memory-read hooks return without launching a resident in both entrypoints and runtimes", () =>
+  Effect.gen(function* () {
+    const f = yield* Effect.promise(() => fixture())
+    const output = capture()
+    yield* Effect.gen(function* () {
+      for (const runtime of ["codex", "claude"])
+        for (const name of ["snapshot", "zoom", "status", "roots"]) {
+          const hook = {
+            hook_event_name: "PostToolUse",
+            session_id: "self-read",
+            cwd: f.root,
+            tool_name: `mcp__slopmemr__slopmemr_${name}`,
+            tool_response: { content: "previous memory" }
+          }
+          yield* fastHook(["--runtime", runtime], launch, input(hook))
+          yield* program(["hook", "--runtime", runtime], launch, input(hook))
+        }
+      expect(existsSync(f.paths.directory)).toBe(false)
+      expect(existsSync(join(f.root, ".slopmemr-id"))).toBe(false)
+      expect(output.messages).toEqual([])
+    }).pipe(Effect.provide(f.provider), Effect.provideService(Console.Console, output.port))
   })
 )

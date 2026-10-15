@@ -46,7 +46,7 @@
   "limitations": [
     "Current chat predates MCP registration; fresh Codex sessions were used for real integration",
     "Agent self-report about guide absence was contradicted by its actual developer-context trace; a later observed correction was recorded",
-    "Own MCP read results are re-ingested by PostToolUse; tracked in GitHub issue #11"
+    "Historical v0.1.2 self-read feedback was fixed in v0.1.3; see self-read-filter.json"
   ],
   "followUp": "https://github.com/dearlordylord/slopmemr/issues/11"
 }

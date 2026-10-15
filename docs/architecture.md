@@ -11,6 +11,8 @@
 
 The calling agent's real project root owns memory. Git's NUL-delimited worktree inventory identifies its primary working copy; descendants, symlinks, and linked worktrees resolve to that same physical path. Independent clones remain separate. Non-Git callers supply their physical launch root. Pool keys are permanent 256-bit identities published in a local `.slopmemr-id` file at the primary root, outside Git metadata. Paths are current locations, not identities. Relocation and initializing/removing Git preserve memory; an ordinary clone has no local identity file and gets a new key. Full filesystem copies retaining this file deliberately share identity. Do not commit it. New identities are random; a pre-existing path-keyed pool is adopted before publishing the file, preserving its key and records. Access the original location once after upgrading before moving a legacy project; a project moved before any identity file exists cannot be reliably matched automatically. The last accessed location is retained in pool metadata.
 
+Native PostToolUse events for the installed slopmemr MCP reading methods are excluded before opening storage or launching a resident. Match the exact qualified server/tool identity; unrelated tools and other event types remain observations. Reading existing memory must not feed its responses back into that memory.
+
 Agent runtime, session, child identity, event ID, and record kind remain provenance within a root. Deduplication uses `(runtime, session, child, event)` inside that pool. The content digest covers kind and text. Each event's complete record batch and receipt commit in one SQLite transaction before acknowledgement. Replays retain the original profile selection and receipt.
 
 ```mermaid

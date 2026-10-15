@@ -11,8 +11,7 @@ import { Console, Deferred, Effect, Layer, Schema } from "effect"
 import { layer as compactorLayer } from "../compaction/backends.js"
 import { Append } from "../memory/contracts.js"
 import { layer as memoryLayer } from "../memory/manager.js"
-import { Hook, hookConfiguration, normalize } from "../intake/hook.js"
-import { commandRequiresAcknowledgement } from "../intake/events.js"
+import { Hook, hookConfiguration, normalize, shouldCapture } from "../intake/hook.js"
 import { layer as residentLayer } from "../resident/server.js"
 import { request } from "../resident/client.js"
 import { Request } from "../resident/protocol.js"
@@ -34,7 +33,7 @@ import { help } from "./help.js"
 import { commandHelp } from "../mcp/catalog.js"
 import { layer as readerLayer } from "../mcp/reader.js"
 import { run as runMcp } from "../mcp/stdio.js"
-import { guidance } from "../intake/guidance.js"
+import { nativeOutput } from "../intake/guidance.js"
 import { deliver, pendingDelivery } from "../installation/delivery.js"
 import { targetPackage } from "../installation/package.js"
 import { selectRuntime, ownSelection } from "../installation/runtime-selection.js"
@@ -88,6 +87,7 @@ const runHook = Effect.fn("CLI.hook")(function* (
   source: AsyncIterable<unknown>
 ) {
   const hook = yield* Schema.decodeUnknownEffect(Hook)(yield* readInput(source))
+  if (!shouldCapture(hook)) return
   const input = normalize(
     hook,
     {
@@ -101,8 +101,8 @@ const runHook = Effect.fn("CLI.hook")(function* (
     yield* Effect.sync(randomUUID)
   )
   yield* send(config.endpoint, { _tag: "Append", ...input }, launch)
-  if (hook.hook_event_name === "SessionStart") yield* Console.log(guidance(command.runtime, input.root))
-  else if (commandRequiresAcknowledgement(command.runtime, hook.hook_event_name)) yield* Console.log("{}")
+  const output = nativeOutput(command.runtime, hook.hook_event_name, input.root)
+  if (output !== undefined) yield* Console.log(output)
 })
 
 const runHost = Effect.fn("CLI.host")(function* (

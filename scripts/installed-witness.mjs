@@ -20,6 +20,34 @@ const run = (entrypoint, args, input) => {
   assert.equal(child.status, 0, child.stderr)
   return child.stdout
 }
+const verifyReadCapture = (entrypoint, root, command) => {
+  const count = () => JSON.parse(run(entrypoint, ["status", "--root", root])).count
+  const before = count()
+  const deliver = (tool, identity) => {
+    const event = {
+      hook_event_name: "PostToolUse",
+      cwd: root,
+      session_id: "self-read-check",
+      event_id: identity,
+      tool_name: tool,
+      tool_response: "previous memory"
+    }
+    const result = spawnSync("/bin/sh", ["-c", command], {
+      env,
+      cwd: directory,
+      encoding: "utf8",
+      timeout: 10000,
+      input: JSON.stringify(event)
+    })
+    assert.equal(result.status, 0, result.stderr)
+    assert.equal(result.stdout, "")
+  }
+  for (const method of ["snapshot", "zoom", "status", "roots"])
+    for (let repeat = 0; repeat < 2; repeat++) deliver(`mcp__slopmemr__slopmemr_${method}`, `${method}-${repeat}`)
+  assert.equal(count(), before, "Reading memory must not feed its responses back into intake")
+  deliver("mcp__other__slopmemr_snapshot", "foreign-tool")
+  assert.equal(count(), before + 1, "A foreign server's tool must remain observable")
+}
 let entrypoint
 try {
   const source = resolve("dist/bin/slopmemr.mjs")
@@ -46,6 +74,7 @@ try {
   assert.equal(hook.status, 0, hook.stderr)
   assert.equal(hook.stdout, "")
   assert.ok(run(entrypoint, ["snapshot", "--root", root]).includes("Installed hook remembered this fact."))
+  verifyReadCapture(entrypoint, root, hooks.hooks.PostToolUse[0].hooks[0].command)
   const moved = join(directory, "project moved")
   renameSync(root, moved)
   root = moved
@@ -95,9 +124,14 @@ try {
   assert.equal(JSON.parse(run(entrypoint, ["settle", "--root", claudeRoot])).state, "ready")
   assert.ok(run(entrypoint, ["snapshot", "--root", claudeRoot]).includes("Remember the Claude fact."))
   assert.ok(readFileSync(join(profile, "events"), "utf8").includes('"turn"'))
+  verifyReadCapture(
+    entrypoint,
+    claudeRoot,
+    JSON.parse(readFileSync(join(profile, "settings.json"), "utf8")).hooks.PostToolUse[0].hooks[0].command
+  )
   run(entrypoint, ["uninstall", "claude", "--profile", profile])
   process.stdout.write(
-    "Installed immutable bundle: Codex hooks, Claude hooks/Haiku without Codex, automatic startup, relocation, git init, crash recovery, update and uninstall passed.\n"
+    "Installed immutable bundle: Codex hooks, Claude hooks/Haiku without Codex, automatic startup, relocation, git init, crash recovery, update, uninstall and self-read filtering passed.\n"
   )
 } finally {
   if (entrypoint) spawnSync(process.execPath, [entrypoint, "stop"], { env, timeout: 10000, stdio: "ignore" })

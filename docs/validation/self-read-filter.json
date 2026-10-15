@@ -1,0 +1,42 @@
+{
+  "validation": "own-memory-read-feedback-regression",
+  "version": "0.1.3",
+  "issue": "https://github.com/dearlordylord/slopmemr/issues/11",
+  "installedProfile": "actual Codex profile",
+  "runtime": "codex",
+  "model": "gpt-6-luna",
+  "authentication": "existing ChatGPT subscription; no API keys",
+  "cliDigest": "5e2546235bc0afcd56c510e97bd9d6f1af422080434c4d5e2def244c43d34fa4",
+  "hookDigest": "39d048dc0fb744805654e537925de889dcaf87766c2bf861ca5baf8681cb9ae7",
+  "completedMcpCalls": {
+    "slopmemr_snapshot": 2,
+    "slopmemr_zoom": 2
+  },
+  "beforeCount": 13,
+  "afterCount": 16,
+  "appendedEvents": [
+    "SessionStart",
+    "UserPromptSubmit",
+    "Stop"
+  ],
+  "ownReadObservationsAppended": 0,
+  "previousRecordsRetained": true,
+  "syntheticInstalledRuntimes": [
+    "codex",
+    "claude"
+  ],
+  "installedAssertions": [
+    "all four qualified own read methods ignored on repeated calls",
+    "foreign server tool retained",
+    "legacy CLI and dedicated hook return before resident startup"
+  ],
+  "secretScanIdentityRegression": {
+    "generatedPublicIdentity": "accepted",
+    "sameJsonInOtherFile": "detected",
+    "credentialInIdentityFile": "detected"
+  },
+  "review": {
+    "standards": "no actionable findings",
+    "spec": "no actionable findings"
+  }
+}

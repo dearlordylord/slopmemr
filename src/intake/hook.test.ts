@@ -1,6 +1,6 @@
 import { expect, it } from "vitest"
 import { Schema } from "effect"
-import { Hook, hookConfiguration, normalize } from "./hook.js"
+import { Hook, hookConfiguration, normalize, shouldCapture } from "./hook.js"
 import { commandRequiresAcknowledgement } from "./events.js"
 
 it("retains only observed event fields, real child identity, and an explicit calling root", () => {
@@ -56,4 +56,26 @@ it("deduplicates SessionStart independently of fallback nonces and acknowledges 
   expect(hookConfiguration("owned command").hooks.Stop).toEqual([
     { hooks: [{ type: "command", command: "owned command", timeout: 30 }] }
   ])
+})
+
+it("skips exactly the owned MCP reading calls without interpreting response content", () => {
+  const event = Hook.make({ hook_event_name: "PostToolUse", session_id: "s", cwd: "/root" })
+  for (const name of ["snapshot", "zoom", "status", "roots"])
+    expect(shouldCapture({ ...event, tool_name: `mcp__slopmemr__slopmemr_${name}` })).toBe(false)
+  for (const name of [
+    undefined,
+    "Bash",
+    "slopmemr_snapshot",
+    "mcp__other__slopmemr_snapshot",
+    "mcp__slopmemr__slopmemr_snapshot_extra",
+    "mcp__slopmemr__unknown"
+  ])
+    expect(
+      shouldCapture({
+        ...event,
+        ...(name === undefined ? {} : { tool_name: name }),
+        tool_response: "mcp__slopmemr__slopmemr_snapshot"
+      })
+    ).toBe(true)
+  expect(shouldCapture({ ...event, hook_event_name: "Stop", tool_name: "mcp__slopmemr__slopmemr_snapshot" })).toBe(true)
 })

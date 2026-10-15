@@ -5,14 +5,14 @@
   "typescript": "7.0.2",
   "effect": "4.0.3",
   "effectDiagnostics": {
-    "checkedFiles": 101,
+    "checkedFiles": 102,
     "errors": 0,
     "warnings": 0
   },
   "crap4ts": {
     "version": "1.1.0",
     "threshold": 8,
-    "functionCount": 651,
+    "functionCount": 653,
     "maximumScore": 8.0,
     "unknownFunctions": 0,
     "breaches": 0,
@@ -21,7 +21,7 @@
   },
   "tests": {
     "files": 30,
-    "passed": 218,
+    "passed": 220,
     "failed": 0
   },
   "dependencyCycles": 0,
@@ -54,5 +54,6 @@
     "layerDisposal": "active Claude process terminates before attempt timeout"
   },
   "packageWitness": "docs/validation/package-memory-reading.json",
-  "platformPatch": "v0.1.2 canonical snapshot and selected runtime paths through aliased directories; full CLI scenario exercises setup, repair, update and restart through alias; full local check-all exit 0. Native CI evidence accompanies release assets."
+  "platformPatch": "v0.1.2 canonical snapshot and selected runtime paths through aliased directories; full CLI scenario exercises setup, repair, update and restart through alias; full local check-all exit 0. Native CI evidence accompanies release assets.",
+  "selfReadFilter": "docs/validation/self-read-filter.json"
 }

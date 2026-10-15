@@ -9,7 +9,7 @@ import type { ProcessLaunch } from "../local-state/process-launch.js"
 import { endpoint } from "../resident/endpoint.js"
 import { send } from "../resident/startup.js"
 import { maxFrameBytes } from "../resident/limits.js"
-import { Hook, normalize } from "./hook.js"
+import { Hook, normalize, shouldCapture } from "./hook.js"
 import type { Options as HookOptions } from "./hook.js"
 import { ownerMarker } from "./ownership.js"
 import { nativeOutput } from "./guidance.js"
@@ -79,12 +79,13 @@ const execute = Effect.fn("Hook.execute")(function* (
   source: AsyncIterable<unknown>
 ) {
   const options = yield* parse(args)
+  const hook = yield* Schema.decodeUnknownEffect(Hook)(yield* readJson(source, maxFrameBytes))
+  if (!shouldCapture(hook)) return
   const paths = endpoint(
     yield* Config.NonEmptyString("SLOPMEMR_RUNTIME_DIR").pipe(Config.withDefault(endpoint().directory))
   )
   const profile = homes[options.runtime]
   const home = yield* Config.NonEmptyString(profile.key).pipe(Config.withDefault(join(homedir(), profile.directory)))
-  const hook = yield* Schema.decodeUnknownEffect(Hook)(yield* readJson(source, maxFrameBytes))
   const input = normalize(hook, hookOptions(options, home), yield* Effect.sync(randomUUID))
   yield* send(paths, { _tag: "Append", ...input }, residentLaunch(options, resident))
   const output = nativeOutput(options.runtime, hook.hook_event_name, input.root)
