@@ -40,3 +40,5 @@ Final `pnpm check-all` completed with exit 0 after all corrections: 217 tests / 
 ## Native platform follow-up
 
 Native macOS witnesses exposed selected/runtime identity mismatches through /tmp → /private/tmp. Version 0.1.1 captures physical runtime paths and compares canonical memory directories during repair/reconciliation. A symlink-parent regression was added. Full local check-all passed with 218 tests; native macOS/Linux x64 witnesses are separate release assets.
+
+The complete alias-path fix is v0.1.2: passive selected-target reads also compare physical directory identity. The full CLI integration scenario now runs with an aliased data directory, covering setup, repair after interrupted delivery, update and restart.

@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, rm } from "node:fs/promises"
+import { mkdtemp, mkdir, rm, symlink } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { expect, afterEach } from "vitest"
@@ -53,18 +53,20 @@ const directories: string[] = []
 afterEach(async () => {
   for (const path of directories.splice(0)) await rm(path, { recursive: true, force: true })
 })
-const fixture = async () => {
+const fixture = async (aliasedData = false) => {
   const directory = await mkdtemp(join(tmpdir(), "slopmemr-program-"))
   directories.push(directory)
   const root = join(directory, "root"),
     profile = join(directory, "profile")
   await mkdir(root)
   await mkdir(profile, { mode: 0o700 })
+  if (aliasedData) await symlink(directory, join(directory, "alias"))
+  const data = aliasedData ? join(directory, "alias", "data") : join(directory, "data")
   const paths = endpoint(join(directory, "run"))
   const provider = ConfigProvider.layer(
     ConfigProvider.fromEnvRecord({
       SLOPMEMR_RUNTIME_DIR: paths.directory,
-      SLOPMEMR_DATA_DIR: join(directory, "data"),
+      SLOPMEMR_DATA_DIR: data,
       SLOPMEMR_BIN_DIR: join(directory, "bin"),
       CODEX_HOME: profile
     })
@@ -74,7 +76,7 @@ const fixture = async () => {
 
 it.live("runs the full CLI workflow against its scoped resident using explicit input/configuration/console ports", () =>
   Effect.gen(function* () {
-    const f = yield* Effect.promise(fixture)
+    const f = yield* Effect.promise(() => fixture(true))
     const output = capture()
     yield* Effect.gen(function* () {
       const foreground = yield* program(["resident"], launch).pipe(Effect.forkScoped)

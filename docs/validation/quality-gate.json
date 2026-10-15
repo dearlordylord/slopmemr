@@ -54,5 +54,5 @@
     "layerDisposal": "active Claude process terminates before attempt timeout"
   },
   "packageWitness": "docs/validation/package-memory-reading.json",
-  "platformPatch": "v0.1.1 canonical installed runtime paths through aliased parent directories; full local check-all exit 0. Native platform CI evidence accompanies release assets."
+  "platformPatch": "v0.1.2 canonical snapshot and selected runtime paths through aliased directories; full CLI scenario exercises setup, repair, update and restart through alias; full local check-all exit 0. Native CI evidence accompanies release assets."
 }

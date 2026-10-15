@@ -1,4 +1,4 @@
-import { lstatSync, readFileSync } from "node:fs"
+import { lstatSync, readFileSync, realpathSync } from "node:fs"
 import type { Stats } from "node:fs"
 import { join } from "node:path"
 import { Schema } from "effect"
@@ -22,6 +22,7 @@ export interface SelectionFiles {
   readonly stat: (path: string) => Stats | undefined
   readonly read: (path: string) => string
   readonly owner: () => number | undefined
+  readonly canonical: (path: string) => string
 }
 
 const statOptional = (path: string): Stats | undefined => {
@@ -34,6 +35,7 @@ const statOptional = (path: string): Stats | undefined => {
 }
 export const selectionFiles: SelectionFiles = {
   stat: statOptional,
+  canonical: realpathSync,
   read: (path) => readFileSync(path, "utf8"),
   owner: () => process.getuid?.()
 }
@@ -51,6 +53,7 @@ export const readSelection = (directory: string, files: SelectionFiles): Runtime
   const selected = Schema.decodeUnknownSync(Schema.fromJsonString(RuntimeSelection), { onExcessProperty: "error" })(
     files.read(path)
   )
-  if (selected.dataDirectory !== directory) throw new Error("Resident selection belongs to another data directory")
+  if (selected.dataDirectory !== files.canonical(directory))
+    throw new Error("Resident selection belongs to another data directory")
   return selected
 }

@@ -7,22 +7,22 @@
     "cpuModel": "unknown",
     "cpuCount": 12,
     "loadAtStart": [
-      6.53,
-      7.61,
-      7.28
+      8.45,
+      7.35,
+      7.16
     ]
   },
   "artifactDigests": {
     "application": "slopmemr",
     "format": 1,
-    "version": "0.1.1",
+    "version": "0.1.2",
     "platform": "linux",
     "arch": "arm64",
     "cli": {
-      "digest": "9545654f2d48764e852fc8b8e50023eb69d80e8bca840803da2330b99ba190c7"
+      "digest": "46c0d8d4759f471d5f1939fac0305e7caf581dbc71cdc36f3a29900160d035c5"
     },
     "hook": {
-      "digest": "e029d03b025dd50798b32f70ab751b7a5b726f5643255db5247434eaf49a3fea"
+      "digest": "45abd7171048b9140f42534afe674c0fb11d303d7be5bbf216b86868b6ce52ec"
     },
     "runtime": {
       "digest": "23a5637c2470fde09fcc1acc77c1b92e04e3d7e3e6e80ff7df6f5831958d1477"
@@ -38,61 +38,61 @@
   "hook": {
     "cold": [
       {
-        "elapsedMs": 252.31387999999993,
+        "elapsedMs": 360.7256510000001,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 221.81459500000005,
+        "elapsedMs": 314.2109150000001,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 190.52105000000006,
+        "elapsedMs": 334.7890379999999,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 190.79613700000004,
+        "elapsedMs": 346.3803150000001,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 202.22490000000016,
+        "elapsedMs": 304.77731700000004,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 195.583028,
+        "elapsedMs": 210.98488300000008,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 207.69000800000003,
+        "elapsedMs": 206.24885399999994,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 204.50671899999998,
+        "elapsedMs": 215.57374400000026,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 261.0430690000003,
+        "elapsedMs": 302.0800509999999,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 312.52689899999996,
+        "elapsedMs": 196.14133700000002,
         "exit": 0,
         "signal": null,
         "acknowledged": true
@@ -100,181 +100,181 @@
     ],
     "warm": [
       {
-        "elapsedMs": 179.37370800000008,
+        "elapsedMs": 76.23174600000038,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 128.04296299999987,
+        "elapsedMs": 72.07155499999953,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 97.6416790000003,
+        "elapsedMs": 69.80729099999917,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 129.15156000000025,
+        "elapsedMs": 77.59333699999934,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 115.85360700000001,
+        "elapsedMs": 83.65862399999969,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 115.40606000000025,
+        "elapsedMs": 116.58781999999974,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 74.00343500000054,
+        "elapsedMs": 72.54618299999947,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 75.81841599999916,
+        "elapsedMs": 74.84848799999963,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 74.57569199999944,
+        "elapsedMs": 75.48965799999951,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 72.77050400000007,
+        "elapsedMs": 81.72281999999996,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 71.26361100000031,
+        "elapsedMs": 75.18648899999971,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 66.64059600000019,
+        "elapsedMs": 77.25100300000031,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 69.26800300000014,
+        "elapsedMs": 78.30184199999985,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 71.729241,
+        "elapsedMs": 79.5830990000004,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 75.62783000000036,
+        "elapsedMs": 79.03938799999924,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 72.83246300000064,
+        "elapsedMs": 72.13718000000063,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 73.21113400000013,
+        "elapsedMs": 73.44110499999988,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 78.0227760000007,
+        "elapsedMs": 86.84760099999949,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 79.18249699999978,
+        "elapsedMs": 75.53249199999937,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 75.10053199999948,
+        "elapsedMs": 79.61076599999978,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 76.09875199999988,
+        "elapsedMs": 71.84317800000008,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 67.40152299999954,
+        "elapsedMs": 76.93079200000011,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 74.40164800000002,
+        "elapsedMs": 73.82519000000048,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 68.80474799999956,
+        "elapsedMs": 77.01137599999947,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 67.81302700000015,
+        "elapsedMs": 76.7796240000007,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 72.00149499999952,
+        "elapsedMs": 75.67295099999956,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 71.02548200000001,
+        "elapsedMs": 76.27649699999984,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 71.927952,
+        "elapsedMs": 73.70389700000032,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 70.80164599999989,
+        "elapsedMs": 76.90858299999945,
         "exit": 0,
         "signal": null,
         "acknowledged": true
       },
       {
-        "elapsedMs": 73.65922199999932,
+        "elapsedMs": 83.69408300000032,
         "exit": 0,
         "signal": null,
         "acknowledged": true
@@ -282,26 +282,26 @@
     ],
     "unavailable": [
       {
-        "elapsedMs": 2590.088481999999,
+        "elapsedMs": 2583.1834869999984,
         "exit": 1,
         "signal": null,
         "acknowledged": false
       },
       {
-        "elapsedMs": 2562.5905669999993,
+        "elapsedMs": 2602.813478,
         "exit": 1,
         "signal": null,
         "acknowledged": false
       },
       {
-        "elapsedMs": 2581.25525,
+        "elapsedMs": 2566.4239279999983,
         "exit": 1,
         "signal": null,
         "acknowledged": false
       }
     ],
-    "coldP95Ms": 312.52689899999996,
-    "warmP95Ms": 129.15156000000025
+    "coldP95Ms": 360.7256510000001,
+    "warmP95Ms": 86.84760099999949
   },
   "complete": true,
   "mcpCliParity": true,
