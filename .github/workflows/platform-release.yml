@@ -57,6 +57,11 @@ jobs:
           cp seed/slopmemr-0.1.0-linux-arm64/bin/THIRD_PARTY_NOTICES.txt dist/bin/
       - name: Package the native embedded runtime
         run: node scripts/package.mjs
+      - name: Install the native Codex CLI for its hooks feature command
+        shell: bash
+        run: |
+          npm install --prefix "$RUNNER_TEMP/codex-cli" --no-audit --no-fund @openai/codex@0.162.1
+          echo "$RUNNER_TEMP/codex-cli/node_modules/.bin" >> "$GITHUB_PATH"
       - name: Exercise installed lifecycle
         run: node scripts/installed-witness.mjs
       - name: Exercise native package, hook timing, MCP, update and removal
