@@ -47,6 +47,7 @@ jobs:
           set -euo pipefail
           test "$(node -p process.platform)" = '${{ matrix.platform }}'
           test "$(node -p process.arch)" = '${{ matrix.arch }}'
+          rm -f docs/validation/package-memory-reading.json docs/validation/package-memory-reading-runs.jsonl
           mkdir -p seed dist/bin
           gh release download v0.1.0 --pattern slopmemr-0.1.0-linux-arm64.tar.gz --dir seed
           echo '871d1b3eb2c1c0eebc8c76b13f554104044740767ea08ce98077c07fc80f0c56  seed/slopmemr-0.1.0-linux-arm64.tar.gz' | shasum -a 256 -c -
