@@ -36,3 +36,7 @@ Other corrections in this cycle: expected read-boundary/range failures use Resul
 Delivery interruption witnesses use actual immutable built snapshots and filesystem journals with injected native/activation failures. They preserve the pending target and intent, reject premature uninstall, resume the publication callback, and remove both journals only after completion. These are synthetic failure witnesses, not exhaustive crash-schedule verification.
 
 Final `pnpm check-all` completed with exit 0 after all corrections: 217 tests / 30 files; Effect diagnostics 101/101 files, zero warnings; CRAP 647 functions, maximum 8, no threshold breaches. Installed, bootstrap and package witnesses passed. Final package observations: cold p95 268 ms, warm p95 110 ms, unavailable-runtime acknowledgement 2.56–2.58 s.
+
+## Native platform follow-up
+
+Native macOS witnesses exposed selected/runtime identity mismatches through /tmp → /private/tmp. Version 0.1.1 captures physical runtime paths and compares canonical memory directories during repair/reconciliation. A symlink-parent regression was added. Full local check-all passed with 218 tests; native macOS/Linux x64 witnesses are separate release assets.

@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises"
+import { mkdtemp, rm, writeFile, symlink, mkdir } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { afterEach, expect } from "vitest"
@@ -8,6 +8,7 @@ import { install, repair } from "./manager.js"
 import { doctor } from "./doctor.js"
 import { capture } from "./snapshot.js"
 import { installationPaths, launcherContent, mcpLauncherContent, makeOwnership } from "./binding.js"
+import { realpathSync } from "node:fs"
 import { readOptional, writeAtomic } from "./files.js"
 
 const directories: string[] = []
@@ -99,5 +100,22 @@ it.effect("doctor preserves independent component health", () =>
     yield* repair(f.selection)
     yield* Effect.promise(() => rm(paths.launcher))
     expect(yield* doctor(f.selection)).toMatchObject({ hooks: "missing", mcp: "ready", runtimeAvailable: true })
+  })
+)
+
+it.effect("captures physical runtime paths through a symlinked parent directory", () =>
+  Effect.gen(function* () {
+    const f = yield* Effect.promise(fixture)
+    const physical = join(f.directory, "physical")
+    const alias = join(f.directory, "alias")
+    yield* Effect.promise(async () => {
+      await mkdir(physical)
+      await symlink(physical, alias)
+    })
+    const snapshot = yield* capture(f.source, join(alias, "data"))
+    expect(snapshot.dataDirectory).toBe(realpathSync(snapshot.dataDirectory))
+    expect(snapshot.launch.entrypoint).toBe(realpathSync(snapshot.launch.entrypoint))
+    expect(snapshot.launch.executable).toBe(realpathSync(snapshot.launch.executable))
+    expect(snapshot.directory.startsWith(realpathSync(physical))).toBe(true)
   })
 )

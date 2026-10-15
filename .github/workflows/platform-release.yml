@@ -1,4 +1,4 @@
-name: Validate and publish v0.1.0 platforms
+name: Validate and publish v0.1.1 platforms
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: platform-release-v0.1.0
+  group: platform-release-v0.1.1
   cancel-in-progress: false
 
 jobs:
@@ -35,7 +35,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          ref: v0.1.0
+          ref: v0.1.1
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
@@ -49,12 +49,12 @@ jobs:
           test "$(node -p process.arch)" = '${{ matrix.arch }}'
           rm -f docs/validation/package-memory-reading.json docs/validation/package-memory-reading-runs.jsonl
           mkdir -p seed dist/bin
-          gh release download v0.1.0 --pattern slopmemr-0.1.0-linux-arm64.tar.gz --dir seed
-          echo '871d1b3eb2c1c0eebc8c76b13f554104044740767ea08ce98077c07fc80f0c56  seed/slopmemr-0.1.0-linux-arm64.tar.gz' | shasum -a 256 -c -
-          tar -xzf seed/slopmemr-0.1.0-linux-arm64.tar.gz -C seed
-          cp seed/slopmemr-0.1.0-linux-arm64/bin/slopmemr.mjs dist/bin/
-          cp seed/slopmemr-0.1.0-linux-arm64/bin/slopmemr-hook.mjs dist/bin/
-          cp seed/slopmemr-0.1.0-linux-arm64/bin/THIRD_PARTY_NOTICES.txt dist/bin/
+          gh release download v0.1.1 --pattern slopmemr-0.1.1-linux-arm64.tar.gz --dir seed
+          echo '23fcbc8d348fa1584a6487dc213e3a97461cd73ff592cb921241c707858e16b0  seed/slopmemr-0.1.1-linux-arm64.tar.gz' | shasum -a 256 -c -
+          tar -xzf seed/slopmemr-0.1.1-linux-arm64.tar.gz -C seed
+          cp seed/slopmemr-0.1.1-linux-arm64/bin/slopmemr.mjs dist/bin/
+          cp seed/slopmemr-0.1.1-linux-arm64/bin/slopmemr-hook.mjs dist/bin/
+          cp seed/slopmemr-0.1.1-linux-arm64/bin/THIRD_PARTY_NOTICES.txt dist/bin/
       - name: Package the native embedded runtime
         run: node scripts/package.mjs
       - name: Install the native Codex CLI for its hooks feature command
@@ -79,7 +79,7 @@ jobs:
         run: |
           mkdir -p release-assets
           cp dist/releases/*.tar.gz dist/releases/*.sha256 release-assets/
-          cp docs/validation/package-memory-reading.json release-assets/slopmemr-0.1.0-${{ matrix.platform }}-${{ matrix.arch }}.validation.json
+          cp docs/validation/package-memory-reading.json release-assets/slopmemr-0.1.1-${{ matrix.platform }}-${{ matrix.arch }}.validation.json
       - name: Retain validated packages
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -110,4 +110,4 @@ jobs:
           set -euo pipefail
           cd release-assets
           sha256sum -c ./*.sha256
-          gh release upload v0.1.0 ./*
+          gh release upload v0.1.1 ./*

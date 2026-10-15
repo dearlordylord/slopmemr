@@ -1,7 +1,7 @@
 import { authorizeSnapshot, artifactFiles } from "../installation/artifacts.js"
 import { TransportError } from "../resident/endpoint.js"
 import { randomUUID } from "node:crypto"
-import { readFileSync } from "node:fs"
+import { readFileSync, realpathSync } from "node:fs"
 import { join } from "node:path"
 import { contentDigest } from "../installation/binding.js"
 import { applicationName, applicationVersion } from "../resident/identity.js"
@@ -151,8 +151,12 @@ const repairHost = Effect.fn("CLI.repairHost")(function* (
       Repaired,
       yield* repair(selection, undefined, (selected) => enableHooks(selected, config.compactor.executable))
     )
+  const directory = yield* Effect.try({
+    try: () => realpathSync(config.memory.directory),
+    catch: () => new CliError({ message: "Cannot inspect the delivery memory directory" })
+  })
   if (
-    pending.ownership.snapshot.dataDirectory !== config.memory.directory ||
+    pending.ownership.snapshot.dataDirectory !== directory ||
     pending.intent.publicDirectory !== config.publicDirectory
   )
     return yield* Effect.fail(

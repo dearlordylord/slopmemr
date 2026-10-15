@@ -41,9 +41,10 @@ export const capture = Effect.fn("Installation.capture")(function* (source: Proc
       const build = contentDigest(
         `${digest}:${hookDigest}:${runtimeDigest}:${contentDigest(notices)}:${contentDigest(runtimeNotices)}`
       )
-      const target = join(directory, "runtime", build, "slopmemr.mjs")
       privateDirectory(directory)
-      privateDirectory(join(directory, "runtime"))
+      const canonicalDirectory = realpathSync(directory)
+      const target = join(canonicalDirectory, "runtime", build, "slopmemr.mjs")
+      privateDirectory(join(canonicalDirectory, "runtime"))
       privateDirectory(dirname(target))
       publishImmutable(target, text)
       publishImmutable(join(dirname(target), "slopmemr-hook.mjs"), hook)
@@ -56,7 +57,7 @@ export const capture = Effect.fn("Installation.capture")(function* (source: Proc
         directory: dirname(target),
         launch: { executable, entrypoint: target },
         hook: { digest: hookDigest, launch: { executable, entrypoint: join(dirname(target), "slopmemr-hook.mjs") } },
-        dataDirectory: realpathSync(directory),
+        dataDirectory: canonicalDirectory,
         runtimeDigest
       })
       publishImmutable(join(dirname(target), "snapshot.json"), JSON.stringify(snapshot) + "\n")

@@ -86,12 +86,16 @@ export const authorizeSnapshot = Effect.fn("Installation.authorizeSnapshot")(fun
   directory: string,
   files: ArtifactFiles
 ) {
+  const canonicalDirectory = yield* Effect.try({
+    try: () => files.canonical(directory),
+    catch: () => new InstallationError({ operation: "identity", message: "Cannot resolve the installation directory" })
+  })
   const snapshot = yield* Effect.try({
     try: () => {
-      if (observed.entrypoint === undefined || observed.dataDirectory !== directory)
+      if (observed.entrypoint === undefined || observed.dataDirectory !== canonicalDirectory)
         throw new InstallationError({ operation: "identity", message: "Endpoint belongs to an unexpected resident" })
       const root = files.canonical(dirname(observed.entrypoint))
-      if (dirname(root) !== join(files.canonical(directory), "runtime"))
+      if (dirname(root) !== join(canonicalDirectory, "runtime"))
         throw new InstallationError({ operation: "identity", message: "Resident is outside this installation" })
       return Schema.decodeUnknownSync(Schema.fromJsonString(Snapshot))(
         Buffer.from(files.read(join(root, "snapshot.json"))).toString("utf8")
@@ -106,7 +110,7 @@ export const authorizeSnapshot = Effect.fn("Installation.authorizeSnapshot")(fun
   yield* verifySnapshot(snapshot, files)
   if (
     snapshot.digest !== observed.implementation ||
-    snapshot.dataDirectory !== directory ||
+    snapshot.dataDirectory !== canonicalDirectory ||
     snapshot.launch.executable !== observed.executable ||
     snapshot.launch.entrypoint !== observed.entrypoint
   )

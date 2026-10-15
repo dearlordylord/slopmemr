@@ -12,7 +12,7 @@
   "crap4ts": {
     "version": "1.1.0",
     "threshold": 8,
-    "functionCount": 647,
+    "functionCount": 651,
     "maximumScore": 8.0,
     "unknownFunctions": 0,
     "breaches": 0,
@@ -21,7 +21,7 @@
   },
   "tests": {
     "files": 30,
-    "passed": 217,
+    "passed": 218,
     "failed": 0
   },
   "dependencyCycles": 0,
@@ -53,5 +53,6 @@
     "legacyForeignAuth": "discarded for inference; explicit same-runtime fallback required",
     "layerDisposal": "active Claude process terminates before attempt timeout"
   },
-  "packageWitness": "docs/validation/package-memory-reading.json"
+  "packageWitness": "docs/validation/package-memory-reading.json",
+  "platformPatch": "v0.1.1 canonical installed runtime paths through aliased parent directories; full local check-all exit 0. Native platform CI evidence accompanies release assets."
 }
