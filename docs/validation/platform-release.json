@@ -1,11 +1,10 @@
 {
-  "release": "v0.1.2",
-  "url": "https://github.com/dearlordylord/slopmemr/releases/tag/v0.1.2",
-  "sourceCommit": "372e2c1d17d0393a6fc47e8e4c3afaa01f100968",
-  "nativeStableRun": "https://github.com/dearlordylord/slopmemr/actions/runs/38673546593",
-  "nativeIntelRun": "https://github.com/dearlordylord/slopmemr/actions/runs/38674169870",
+  "release": "v0.1.3",
+  "url": "https://github.com/dearlordylord/slopmemr/releases/tag/v0.1.3",
+  "sourceCommit": "e52140583c4b85f31228790b5d8e6e13eb9cb723",
+  "nativeRun": "https://github.com/dearlordylord/slopmemr/actions/runs/38681275804",
   "downloadedArchiveChecksumsVerified": true,
-  "identicalPortableCliDigest": "46c0d8d4759f471d5f1939fac0305e7caf581dbc71cdc36f3a29900160d035c5",
+  "identicalPortableCliDigest": "5e2546235bc0afcd56c510e97bd9d6f1af422080434c4d5e2def244c43d34fa4",
   "platforms": [
     {
       "platform": "darwin",
@@ -13,8 +12,8 @@
       "classification": "validated",
       "strictWitnessPassed": true,
       "functionalWitnessPassed": true,
-      "coldP95Ms": 325.4164589999998,
-      "warmP95Ms": 120.06120800000008
+      "coldP95Ms": 363.175875,
+      "warmP95Ms": 103.35883399999966
     },
     {
       "platform": "darwin",
@@ -22,8 +21,8 @@
       "classification": "experimental-latency",
       "strictWitnessPassed": false,
       "functionalWitnessPassed": true,
-      "coldP95Ms": 981.524633,
-      "warmP95Ms": 301.59054900000046
+      "coldP95Ms": 1261.63816,
+      "warmP95Ms": 439.0189329999994
     },
     {
       "platform": "linux",
@@ -31,8 +30,8 @@
       "classification": "validated",
       "strictWitnessPassed": true,
       "functionalWitnessPassed": true,
-      "coldP95Ms": 360.7256510000001,
-      "warmP95Ms": 86.84760099999949
+      "coldP95Ms": 250.71174499999995,
+      "warmP95Ms": 83.83343100000002
     },
     {
       "platform": "linux",
@@ -40,8 +39,8 @@
       "classification": "validated",
       "strictWitnessPassed": true,
       "functionalWitnessPassed": true,
-      "coldP95Ms": 376.3296849999999,
-      "warmP95Ms": 142.41943999999967
+      "coldP95Ms": 391.62678700000004,
+      "warmP95Ms": 139.07016699999986
     }
   ],
   "latencyPolicy": "Strict benchmark target stays 150ms warm p95. Intel is explicitly experimental when all functional checks and cold/unavailable deadlines pass but only warm target fails. Failed samples are retained; acceptance does not imply a passing strict performance benchmark."
