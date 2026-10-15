@@ -1,0 +1,48 @@
+{
+  "release": "v0.1.2",
+  "url": "https://github.com/dearlordylord/slopmemr/releases/tag/v0.1.2",
+  "sourceCommit": "372e2c1d17d0393a6fc47e8e4c3afaa01f100968",
+  "nativeStableRun": "https://github.com/dearlordylord/slopmemr/actions/runs/38673546593",
+  "nativeIntelRun": "https://github.com/dearlordylord/slopmemr/actions/runs/38674169870",
+  "downloadedArchiveChecksumsVerified": true,
+  "identicalPortableCliDigest": "46c0d8d4759f471d5f1939fac0305e7caf581dbc71cdc36f3a29900160d035c5",
+  "platforms": [
+    {
+      "platform": "darwin",
+      "arch": "arm64",
+      "classification": "validated",
+      "strictWitnessPassed": true,
+      "functionalWitnessPassed": true,
+      "coldP95Ms": 325.4164589999998,
+      "warmP95Ms": 120.06120800000008
+    },
+    {
+      "platform": "darwin",
+      "arch": "x64",
+      "classification": "experimental-latency",
+      "strictWitnessPassed": false,
+      "functionalWitnessPassed": true,
+      "coldP95Ms": 981.524633,
+      "warmP95Ms": 301.59054900000046
+    },
+    {
+      "platform": "linux",
+      "arch": "arm64",
+      "classification": "validated",
+      "strictWitnessPassed": true,
+      "functionalWitnessPassed": true,
+      "coldP95Ms": 360.7256510000001,
+      "warmP95Ms": 86.84760099999949
+    },
+    {
+      "platform": "linux",
+      "arch": "x64",
+      "classification": "validated",
+      "strictWitnessPassed": true,
+      "functionalWitnessPassed": true,
+      "coldP95Ms": 376.3296849999999,
+      "warmP95Ms": 142.41943999999967
+    }
+  ],
+  "latencyPolicy": "Strict benchmark target stays 150ms warm p95. Intel is explicitly experimental when all functional checks and cold/unavailable deadlines pass but only warm target fails. Failed samples are retained; acceptance does not imply a passing strict performance benchmark."
+}

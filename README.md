@@ -14,6 +14,8 @@ slopmemr runs one local resident per operating-system user. Coding agents contri
 
 For a ready-made package, unpack the matching archive and run `./bin/slopmemr install codex` or `./bin/slopmemr install claude`. Node is included. The calling runtime’s installed CLI and subscription login are needed for compaction. Download packages from [GitHub Releases](https://github.com/dearlordylord/slopmemr/releases). Each release lists its available platform archives and native validation evidence. `pnpm package` builds an archive for the current platform.
 
+Platform status for v0.1.2: Linux arm64/x64 and macOS arm64 passed native package witnesses. macOS x64 is **experimental for hook latency**: functionality passed, but the last warm-hook p95 was 302 ms against a 150 ms target. Per-platform validation JSON is attached to the release; [acceptance summary](docs/validation/platform-release.json) retains the distinction.
+
 For development, use Node 24 on Linux or macOS, pnpm and Git. Keep `../unii` beside this checkout for the build:
 
 ```sh
