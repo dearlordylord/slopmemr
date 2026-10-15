@@ -1,0 +1,52 @@
+{
+  "version": "0.1.2",
+  "implementation": "46c0d8d4759f471d5f1939fac0305e7caf581dbc71cdc36f3a29900160d035c5",
+  "runtime": "codex",
+  "model": "gpt-6-luna",
+  "project": "slopmemr",
+  "realProfileInstallation": true,
+  "embeddedRuntime": true,
+  "foreignNativeConfigurationPreserved": true,
+  "nativeHookTrust": "Reviewed installed definitions through native /hooks UI; persisted trust for the five newly installed handlers",
+  "mcpApprovalScope": "Only snapshot and zoom approved in ignored project-local .codex/config.toml; global approval policy and owned user-profile MCP binding unchanged",
+  "nativeSessionStartGuideInDeveloperContext": true,
+  "nativeSessionStartCliFallbackInDeveloperContext": true,
+  "mcpCalls": [
+    {
+      "stage": "capture-and-read",
+      "tool": "slopmemr_snapshot",
+      "status": "completed"
+    },
+    {
+      "stage": "capture-and-read",
+      "tool": "slopmemr_zoom",
+      "status": "completed"
+    },
+    {
+      "stage": "later-session-recall",
+      "tool": "slopmemr_snapshot",
+      "status": "completed"
+    }
+  ],
+  "crossSessionRecall": {
+    "tracker": "GitHub Issues",
+    "openResearchIssue": 1,
+    "hooksWaitFor": "durable intake acknowledgement, not compaction"
+  },
+  "recordsAtVerification": 13,
+  "coveredAtVerification": 13,
+  "processing": {
+    "state": "idle",
+    "active": 0,
+    "pending": 0,
+    "failed": [],
+    "storageAvailable": true
+  },
+  "providerCredentialHandling": "Existing Codex ChatGPT login; no API keys or token-store copies",
+  "limitations": [
+    "Current chat predates MCP registration; fresh Codex sessions were used for real integration",
+    "Agent self-report about guide absence was contradicted by its actual developer-context trace; a later observed correction was recorded",
+    "Own MCP read results are re-ingested by PostToolUse; tracked in GitHub issue #11"
+  ],
+  "followUp": "https://github.com/dearlordylord/slopmemr/issues/11"
+}
