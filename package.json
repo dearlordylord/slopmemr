@@ -32,7 +32,7 @@
     "format": "dprint fmt",
     "format:check": "dprint check",
     "dev-install": "pnpm build && node scripts/dev-install.mjs",
-    "check-all": "pnpm build && pnpm verify:cohort && pnpm typecheck && pnpm circular && pnpm complexity && pnpm lint && pnpm secrets:check && pnpm test:quality && pnpm test:installed && pnpm test:bootstrap && pnpm test:package",
+    "check-all": "pnpm build && pnpm verify:cohort && pnpm typecheck && pnpm circular && pnpm complexity && pnpm lint && pnpm secrets:check && pnpm test:quality && pnpm test:installed && pnpm test:bootstrap && pnpm test:package && pnpm test:npm",
     "typecheck:tsc": "tsc --noEmit",
     "typecheck:effect": "node scripts/check-effect.mjs",
     "circular": "dpdm --no-warning --no-tree --no-progress --exit-code circular:1 --transform 'src/**/*.ts' && pnpm architecture:check",
@@ -47,7 +47,9 @@
     "test:quality": "crap4ts --config crap4ts.json",
     "test:bootstrap": "node --test scripts/dev-install.test.mjs",
     "package": "pnpm build && node scripts/package.mjs",
-    "test:package": "node scripts/package.mjs && node scripts/package-witness.mjs"
+    "test:package": "node scripts/package.mjs && node scripts/package-witness.mjs",
+    "npm:pack": "pnpm build && node scripts/npm-package.mjs",
+    "test:npm": "node scripts/npm-package.mjs && node scripts/npm-witness.mjs"
   },
   "dependencies": {
     "@effect/platform-node": "4.0.3",

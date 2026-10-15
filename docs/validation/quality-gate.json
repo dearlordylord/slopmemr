@@ -55,5 +55,6 @@
   },
   "packageWitness": "docs/validation/package-memory-reading.json",
   "platformPatch": "v0.1.2 canonical snapshot and selected runtime paths through aliased directories; full CLI scenario exercises setup, repair, update and restart through alias; full local check-all exit 0. Native CI evidence accompanies release assets.",
-  "selfReadFilter": "docs/validation/self-read-filter.json"
+  "selfReadFilter": "docs/validation/self-read-filter.json",
+  "npmPackageWitness": "docs/validation/npm-package.json"
 }
