@@ -1,0 +1,11 @@
+{
+  "package": "@firfi/slopmemr",
+  "version": "0.1.3",
+  "registry": "https://registry.npmjs.org/",
+  "registryIntegrity": "sha512-TjczdIMMIAgzN7ecKX5/tnU3LPbtqa3D3NXMoSm8qCtSXYwoNPN9X0+55EPyeNdZDYIeDBuvIHRUuhxqi3iKHA==",
+  "publicRegistryGlobalInstallation": true,
+  "cliHelp": true,
+  "portableBundlesMatchValidatedSource": true,
+  "runtimeDependencies": 0,
+  "lifecycleScripts": false
+}
