@@ -1,0 +1,107 @@
+name: Validate and publish v0.1.0 platforms
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: platform-release-v0.1.0
+  cancel-in-progress: false
+
+jobs:
+  package:
+    name: Package and witness ${{ matrix.platform }}-${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            platform: linux
+            arch: x64
+          - runner: macos-15
+            platform: darwin
+            arch: arm64
+          - runner: macos-15-intel
+            platform: darwin
+            arch: x64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      TMPDIR: /tmp
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: v0.1.0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24.20.0
+          architecture: ${{ matrix.arch }}
+      - name: Recover the exact validated portable bundles
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(node -p process.platform)" = '${{ matrix.platform }}'
+          test "$(node -p process.arch)" = '${{ matrix.arch }}'
+          mkdir -p seed dist/bin
+          gh release download v0.1.0 --pattern slopmemr-0.1.0-linux-arm64.tar.gz --dir seed
+          echo '871d1b3eb2c1c0eebc8c76b13f554104044740767ea08ce98077c07fc80f0c56  seed/slopmemr-0.1.0-linux-arm64.tar.gz' | shasum -a 256 -c -
+          tar -xzf seed/slopmemr-0.1.0-linux-arm64.tar.gz -C seed
+          cp seed/slopmemr-0.1.0-linux-arm64/bin/slopmemr.mjs dist/bin/
+          cp seed/slopmemr-0.1.0-linux-arm64/bin/slopmemr-hook.mjs dist/bin/
+          cp seed/slopmemr-0.1.0-linux-arm64/bin/THIRD_PARTY_NOTICES.txt dist/bin/
+      - name: Package the native embedded runtime
+        run: node scripts/package.mjs
+      - name: Exercise installed lifecycle
+        run: node scripts/installed-witness.mjs
+      - name: Exercise native package, hook timing, MCP, update and removal
+        run: node scripts/package-witness.mjs
+      - name: Retain witness evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: evidence-${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            docs/validation/package-memory-reading.json
+            docs/validation/package-memory-reading-runs.jsonl
+          retention-days: 30
+      - name: Stage validated release files
+        run: |
+          mkdir -p release-assets
+          cp dist/releases/*.tar.gz dist/releases/*.sha256 release-assets/
+          cp docs/validation/package-memory-reading.json release-assets/slopmemr-0.1.0-${{ matrix.platform }}-${{ matrix.arch }}.validation.json
+      - name: Retain validated packages
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: package-${{ matrix.platform }}-${{ matrix.arch }}
+          path: release-assets/*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish only after all native witnesses pass
+    needs: package
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: package-*
+          path: release-assets
+          merge-multiple: true
+      - name: Upload native packages and validation evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd release-assets
+          sha256sum -c ./*.sha256
+          gh release upload v0.1.0 ./*
