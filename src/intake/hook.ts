@@ -26,9 +26,22 @@ const ownMemoryReadCalls: ReadonlySet<string> = new Set(
   Object.values(memoryToolNames).map((name) => `mcp__slopmemr__${name}`)
 )
 
+const hasAssistantText = (event: Hook): boolean => (event.last_assistant_message?.trim().length ?? 0) > 0
+
 /** Native Codex and Claude qualify MCP calls with their server and tool identity. */
-export const shouldCapture = (event: Hook): boolean =>
-  event.hook_event_name !== "PostToolUse" || !ownMemoryReadCalls.has(event.tool_name ?? "")
+export const shouldCapture = (event: Hook): boolean => {
+  switch (event.hook_event_name) {
+    case "SessionStart":
+      return false
+    case "Stop":
+    case "SubagentStop":
+      return hasAssistantText(event)
+    case "PostToolUse":
+      return !ownMemoryReadCalls.has(event.tool_name ?? "")
+    case "UserPromptSubmit":
+      return true
+  }
+}
 
 export interface Options {
   readonly runtime: Runtime

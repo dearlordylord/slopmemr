@@ -1,0 +1,29 @@
+{
+  "issue": 18,
+  "authorization": "User explicitly permits rewriting or deleting beta memory",
+  "removedSessionStartRecords": 19,
+  "pools": 8,
+  "beforeRecords": 28453,
+  "afterRecords": 28434,
+  "retainedLeafSummaries": 24707,
+  "exclusiveOwnership": true,
+  "perPoolTransactions": true,
+  "rootIdentitiesPreserved": true,
+  "readySnapshotTextAvailable": true,
+  "storageAvailable": true,
+  "failedJobs": 0,
+  "installedHooks": "ready",
+  "implementation": "779dd4773fec8dde9ee9c4f52b22107f4c4971531886845c3b9bc8735439cad7",
+  "maintenanceTests": {
+    "passed": 4,
+    "cases": [
+      "dense originals, auth, receipt and leaf preservation; UNII reopen and original zoom",
+      "idempotent rerun",
+      "active owner refuses changes",
+      "invalid receipt rolls back",
+      "mixed event batch preserved"
+    ]
+  },
+  "review": "Standards and Spec: CLI acknowledgement finding corrected and rechecked; no remaining findings",
+  "paidProviderWitness": false
+}

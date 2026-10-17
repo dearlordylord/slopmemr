@@ -1,5 +1,15 @@
 import { spawnSync } from "node:child_process"
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, cpSync, appendFileSync, writeFileSync, chmodSync } from "node:fs"
+import {
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  cpSync,
+  appendFileSync,
+  writeFileSync,
+  chmodSync,
+  existsSync
+} from "node:fs"
 import { join, resolve } from "node:path"
 import { tmpdir, release, cpus, loadavg } from "node:os"
 import { performance } from "node:perf_hooks"
@@ -44,7 +54,7 @@ const evidence = {
   },
   artifactDigests: JSON.parse(readFileSync(join(target, "manifest.json"), "utf8")),
   conditions:
-    "Real installed hook; durable acknowledgement; repeated identical 4KiB prompt with replay identity; fresh resident, filesystem cache uncontrolled; synthetic Claude backend, no paid inference",
+    "Real installed UserPromptSubmit hook; durable acknowledgement; repeated identical 4KiB prompt with replay identity; fresh resident, filesystem cache uncontrolled; synthetic Claude backend, no paid inference",
   hook: { cold: [], warm: [], unavailable: [] },
   complete: false
 }
@@ -53,12 +63,25 @@ try {
   const owned = JSON.parse(readFileSync(join(profile, ".slopmemr/claude/ownership.json"), "utf8"))
   assert.equal(owned.snapshot.launch.executable, join(owned.snapshot.directory, "node"))
   const hooks = JSON.parse(readFileSync(join(profile, "settings.json"), "utf8"))
-  const hook = hooks.hooks.SessionStart[0].hooks[0].command
+  const hook = hooks.hooks.UserPromptSubmit[0].hooks[0].command
+  const guide = spawnSync("/bin/sh", ["-c", hooks.hooks.SessionStart[0].hooks[0].command], {
+    cwd: directory,
+    env,
+    encoding: "utf8",
+    timeout: 10000,
+    input: JSON.stringify({ hook_event_name: "SessionStart", cwd: root, session_id: "guide" })
+  })
+  assert.equal(guide.status, 0, guide.stderr)
+  assert.ok(guide.stdout.includes("slopmemr_snapshot") && guide.stdout.includes("slopmemr snapshot --root"))
+  assert.equal(existsSync(join(root, ".slopmemr-id")), false)
+  assert.equal(existsSync(env.SLOPMEMR_RUNTIME_DIR), false)
+  evidence.instructionOnlySessionStart = true
   assert.ok(!readFileSync(join(profile, ".slopmemr/claude/hook-launcher.sh"), "utf8").includes("slopmemr.mjs' hook"))
   const payload = JSON.stringify({
-    hook_event_name: "SessionStart",
+    hook_event_name: "UserPromptSubmit",
     cwd: root,
     session_id: "latency",
+    event_id: "latency-replay",
     prompt: "x".repeat(4096)
   })
   const measure = (stage) => {
@@ -74,7 +97,7 @@ try {
       elapsedMs: performance.now() - started,
       exit: child.status,
       signal: child.signal,
-      acknowledged: child.status === 0 && child.stdout.includes("slopmemr_snapshot")
+      acknowledged: child.status === 0 && child.stdout === ""
     }
     evidence.hook[stage].push(sample)
     return sample
@@ -88,6 +111,9 @@ try {
     samples.map(({ elapsedMs }) => elapsedMs).sort((a, b) => a - b)[Math.ceil(samples.length * 0.95) - 1]
   evidence.hook.coldP95Ms = percentile(evidence.hook.cold)
   evidence.hook.warmP95Ms = percentile(evidence.hook.warm)
+  const status = JSON.parse(cli(["status", "--root", root]))
+  assert.equal(status.count, 1)
+  evidence.durableReplayRecordCount = status.count
   cli(["settle", "--root", root])
   const launcher = owned.mcp.launcher
   const frames =

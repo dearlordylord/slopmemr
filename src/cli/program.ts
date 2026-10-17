@@ -87,21 +87,22 @@ const runHook = Effect.fn("CLI.hook")(function* (
   source: AsyncIterable<unknown>
 ) {
   const hook = yield* Schema.decodeUnknownEffect(Hook)(yield* readInput(source))
-  if (!shouldCapture(hook)) return
-  const input = normalize(
-    hook,
-    {
-      runtime: command.runtime,
-      ...(command.root === undefined ? {} : { root: command.root }),
-      auth:
-        command.runtime === "codex"
-          ? { codexHome: command.codexHome ?? config.callerHome }
-          : { claudeHome: command.claudeHome ?? config.callerClaudeHome }
-    },
-    yield* Effect.sync(randomUUID)
-  )
-  yield* send(config.endpoint, { _tag: "Append", ...input }, launch)
-  const output = nativeOutput(command.runtime, hook.hook_event_name, input.root)
+  if (shouldCapture(hook)) {
+    const input = normalize(
+      hook,
+      {
+        runtime: command.runtime,
+        ...(command.root === undefined ? {} : { root: command.root }),
+        auth:
+          command.runtime === "codex"
+            ? { codexHome: command.codexHome ?? config.callerHome }
+            : { claudeHome: command.claudeHome ?? config.callerClaudeHome }
+      },
+      yield* Effect.sync(randomUUID)
+    )
+    yield* send(config.endpoint, { _tag: "Append", ...input }, launch)
+  }
+  const output = nativeOutput(command.runtime, hook.hook_event_name, command.root ?? hook.cwd)
   if (output !== undefined) yield* Console.log(output)
 })
 

@@ -16,13 +16,13 @@ export const legacyPoolKey = async (directory: string, root: string): Promise<st
 }
 
 const Address = Schema.Struct({ level: Schema.Int, index: Schema.Int })
-const JournalRecord = Schema.Struct({
+export const JournalRecord = Schema.Struct({
   id: Schema.Int,
   kind: Schema.NonEmptyString,
   text: Schema.String,
   date: Schema.String
 })
-const Node = Schema.Struct({ level: Schema.Int, index: Schema.Int, text: Schema.String })
+export const Node = Schema.Struct({ level: Schema.Int, index: Schema.Int, text: Schema.String })
 const CheckpointSchema = Schema.Struct({
   version: Schema.Literal(1),
   cursor: Schema.Int,
@@ -31,7 +31,11 @@ const CheckpointSchema = Schema.Struct({
   mainBatching: Schema.Boolean,
   compactionBatching: Schema.Boolean
 })
-const ReceiptSchema = Schema.Struct({ firstId: Schema.Int, ids: Schema.Array(Schema.Int), endExclusive: Schema.Int })
+export const ReceiptSchema = Schema.Struct({
+  firstId: Schema.Int,
+  ids: Schema.Array(Schema.Int),
+  endExclusive: Schema.Int
+})
 
 const database = (path: string, readOnly = false): DatabaseSync => {
   try {
@@ -299,7 +303,7 @@ const validatePoolIdentity = (db: DatabaseSync, existing: unknown, root: string,
 
 const isMissing = (cause: unknown): boolean => cause instanceof Error && "code" in cause && cause.code === "ENOENT"
 
-const validateReceipt = (receipt: typeof ReceiptSchema.Type): void => {
+export const validateReceipt = (receipt: typeof ReceiptSchema.Type): void => {
   if (
     receipt.firstId < 0 ||
     receipt.ids.length === 0 ||

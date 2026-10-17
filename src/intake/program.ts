@@ -73,14 +73,7 @@ const parse = Effect.fn("Hook.arguments")(function* (args: ReadonlyArray<string>
   return yield* Schema.decodeUnknownEffect(Options, { onExcessProperty: "error" })(mapped)
 })
 
-const execute = Effect.fn("Hook.execute")(function* (
-  args: ReadonlyArray<string>,
-  resident: ProcessLaunch,
-  source: AsyncIterable<unknown>
-) {
-  const options = yield* parse(args)
-  const hook = yield* Schema.decodeUnknownEffect(Hook)(yield* readJson(source, maxFrameBytes))
-  if (!shouldCapture(hook)) return
+const capture = Effect.fn("Hook.capture")(function* (hook: Hook, options: Options, resident: ProcessLaunch) {
   const paths = endpoint(
     yield* Config.NonEmptyString("SLOPMEMR_RUNTIME_DIR").pipe(Config.withDefault(endpoint().directory))
   )
@@ -88,7 +81,17 @@ const execute = Effect.fn("Hook.execute")(function* (
   const home = yield* Config.NonEmptyString(profile.key).pipe(Config.withDefault(join(homedir(), profile.directory)))
   const input = normalize(hook, hookOptions(options, home), yield* Effect.sync(randomUUID))
   yield* send(paths, { _tag: "Append", ...input }, residentLaunch(options, resident))
-  const output = nativeOutput(options.runtime, hook.hook_event_name, input.root)
+})
+
+const execute = Effect.fn("Hook.execute")(function* (
+  args: ReadonlyArray<string>,
+  resident: ProcessLaunch,
+  source: AsyncIterable<unknown>
+) {
+  const options = yield* parse(args)
+  const hook = yield* Schema.decodeUnknownEffect(Hook)(yield* readJson(source, maxFrameBytes))
+  if (shouldCapture(hook)) yield* capture(hook, options, resident)
+  const output = nativeOutput(options.runtime, hook.hook_event_name, options.root ?? hook.cwd)
   if (output !== undefined) yield* Console.log(output)
 })
 

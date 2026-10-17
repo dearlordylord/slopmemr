@@ -2,7 +2,7 @@
   "validation": "installed-codex-worker-reuse",
   "provider": "offline protocol fixture",
   "providerInference": false,
-  "implementation": "a788779112b1a8aef214d5d879c2db0c94844003395fbd2465b6352d36e8ac7e",
+  "implementation": "779dd4773fec8dde9ee9c4f52b22107f4c4971531886845c3b9bc8735439cad7",
   "limits": {
     "shared": 30,
     "perProfile": 5

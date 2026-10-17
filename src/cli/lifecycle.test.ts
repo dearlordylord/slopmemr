@@ -1,5 +1,5 @@
 import { execFile, spawn } from "node:child_process"
-import { chmod, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises"
+import { access, chmod, mkdtemp, mkdir, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import { promisify } from "node:util"
@@ -160,3 +160,31 @@ it(
   },
   workflowDeadlineMs
 )
+
+it("instruction-only and empty terminal hooks acknowledge without starting a resident", async () => {
+  const options = await fixture()
+  const args = ["hook", "--runtime", "codex"]
+  const base = { cwd: options.root, session_id: "session" }
+  const guide = await run(options.env, args, { ...base, hook_event_name: "SessionStart" })
+  expect(guide.code).toBe(0)
+  expect(guide.stdout).toContain("slopmemr_snapshot")
+  for (const hook_event_name of ["Stop", "SubagentStop"]) {
+    const result = await run(options.env, args, { ...base, hook_event_name, last_assistant_message: "  " })
+    expect(result.code).toBe(0)
+    expect(result.stdout).toBe("{}\n")
+  }
+  const claude = await run(options.env, ["hook", "--runtime", "claude"], { ...base, hook_event_name: "Stop" })
+  expect(claude.code).toBe(0)
+  expect(claude.stdout).toBe("")
+  await expect(access(join(options.directory, "run"))).rejects.toThrow()
+  await expect(access(join(options.root, ".slopmemr-id"))).rejects.toThrow()
+  const useful = await run(options.env, args, {
+    ...base,
+    hook_event_name: "Stop",
+    last_assistant_message: "Useful answer"
+  })
+  expect(useful.code).toBe(0)
+  expect((await run(options.env, ["zoom", "--root", options.root, "--first", "0", "--count", "1"])).stdout).toContain(
+    "Useful answer"
+  )
+})

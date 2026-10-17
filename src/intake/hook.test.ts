@@ -36,7 +36,7 @@ it("rejects missing session attribution and unknown hook shapes", () => {
   expect(() => Schema.decodeUnknownSync(Hook)({ hook_event_name: "PostToolUse", cwd: "/root" })).toThrow()
 })
 
-it("accepts a native Stop with no assistant message", () => {
+it("accepts but does not capture a native Stop with no assistant message", () => {
   const event = Schema.decodeUnknownSync(Hook)({
     hook_event_name: "Stop",
     session_id: "s",
@@ -44,7 +44,7 @@ it("accepts a native Stop with no assistant message", () => {
     turn_id: "t",
     last_assistant_message: null
   })
-  expect(normalize(event, { runtime: "codex" }, "nonce").text).toBe('{"event":"Stop"}')
+  expect(shouldCapture(event)).toBe(false)
 })
 
 it("deduplicates SessionStart independently of fallback nonces and acknowledges only native stop events", () => {
@@ -77,5 +77,33 @@ it("skips exactly the owned MCP reading calls without interpreting response cont
         tool_response: "mcp__slopmemr__slopmemr_snapshot"
       })
     ).toBe(true)
-  expect(shouldCapture({ ...event, hook_event_name: "Stop", tool_name: "mcp__slopmemr__slopmemr_snapshot" })).toBe(true)
+  expect(
+    shouldCapture({
+      ...event,
+      hook_event_name: "Stop",
+      last_assistant_message: "Useful answer",
+      tool_name: "mcp__slopmemr__slopmemr_snapshot"
+    })
+  ).toBe(true)
+})
+
+it("records useful terminal answers and excludes start/empty terminal diagnostics", () => {
+  const base = { session_id: "s", cwd: "/root" }
+  expect(shouldCapture(Hook.make({ ...base, hook_event_name: "SessionStart", prompt: "ignored start metadata" }))).toBe(
+    false
+  )
+  for (const hook_event_name of ["Stop", "SubagentStop"] as const) {
+    for (const last_assistant_message of [undefined, null, "", " \n\t "])
+      expect(
+        shouldCapture(
+          Hook.make({
+            ...base,
+            hook_event_name,
+            ...(last_assistant_message === undefined ? {} : { last_assistant_message })
+          })
+        )
+      ).toBe(false)
+    expect(shouldCapture(Hook.make({ ...base, hook_event_name, last_assistant_message: "A useful answer" }))).toBe(true)
+  }
+  expect(shouldCapture(Hook.make({ ...base, hook_event_name: "UserPromptSubmit", prompt: "question" }))).toBe(true)
 })
