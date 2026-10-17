@@ -33,6 +33,12 @@
         ],
         "overrides": [
           {
+            "include": ["src/compaction/capacity.ts"],
+            "options": { "allowedUnstableApis": [
+              "effect/PartitionedSemaphore#makeUnsafe", "effect/PartitionedSemaphore#PartitionedSemaphore.withPermit"
+            ] }
+          },
+          {
             "include": ["src/mcp/registry.ts"],
             "options": { "allowedUnstableApis": [
               "effect/ai/McpSchema#CallToolResult", "effect/ai/McpSchema#Tool",

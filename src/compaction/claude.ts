@@ -1,7 +1,8 @@
+import { makeCapacity, makeCapacityUnsafe, type Capacity } from "./capacity.js"
 import { mkdtemp, realpath, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { isAbsolute, join } from "node:path"
-import { Context, Effect, Layer, Schema, Semaphore } from "effect"
+import { Context, Effect, Layer, Schema } from "effect"
 import type { CompressionRequest, Observation } from "@firfi/unii"
 import { CompactionError, instructions, prompt } from "./compactor.js"
 import type { Interface } from "./compactor.js"
@@ -218,8 +219,8 @@ export const layer = (options: Options = {}) =>
       const timeoutMs = options.timeoutMs ?? defaultAttemptTimeoutMs
       if (![concurrency, perAuth, timeoutMs].every((n) => Number.isSafeInteger(n) && n > 0))
         return yield* Effect.fail(new CompactionError({ message: "Claude compactor limits must be positive integers" }))
-      const global = yield* Semaphore.make(concurrency)
-      const profiles = new Map<string, Semaphore.Semaphore>()
+      const global = yield* makeCapacity(concurrency)
+      const profiles = new Map<string, Capacity>()
       const compress = Effect.fn("ClaudeCompactor.compress")(function* (
         auth: AuthReference | undefined,
         request: CompressionRequest,
@@ -239,7 +240,7 @@ export const layer = (options: Options = {}) =>
           if (existing !== undefined) return Effect.succeed(existing)
           if (profiles.size >= maximumAuthProfiles)
             return Effect.fail(new CompactionError({ message: "Claude auth profile capacity reached" }))
-          const created = Semaphore.makeUnsafe(perAuth)
+          const created = makeCapacityUnsafe(perAuth)
           profiles.set(home, created)
           return Effect.succeed(created)
         })

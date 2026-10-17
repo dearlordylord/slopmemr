@@ -1,0 +1,103 @@
+{
+  "issue": "https://github.com/dearlordylord/slopmemr/issues/16",
+  "version": "0.1.4",
+  "implementation": "ff4d7ad499c81c01f4bf49dc9f33ffe49ad971aa2ef3b48f2ae1a2e47e955a00",
+  "rootResolution": {
+    "worktree": "~/.codex/worktrees/15ae/savage",
+    "primary": "/workspace/typescript/savage",
+    "multiverseLab": "separate Git repository and pool; not merged"
+  },
+  "causes": [
+    "Ordinary semaphore admission allowed hot projects to reacquire slots before older waiters, including nested profile gates.",
+    "UNII View.fit rendered the whole view per merge, blocking the resident event loop during large-pool recovery and delaying hook acknowledgement."
+  ],
+  "repairs": {
+    "capacity": "FIFO reservation at shared, backend and profile gates; unchanged concurrency limits and atomic profile publication",
+    "uniiCommit": "ccf08d1db1d0bfa2c59d7a5c1a018d760047b9fa",
+    "view": "Incremental byte accounting, same merge choices and thresholds; 300 seeded reference-equivalence cases and full UNII check passed"
+  },
+  "realInstalledRecovery": {
+    "before": {
+      "totalRecords": 712,
+      "coveredThrough": 1
+    },
+    "after": {
+      "totalRecords": 725,
+      "coveredThrough": 137,
+      "bytes": 53553,
+      "coverage": "behind",
+      "freshness": {
+        "latestRecordAt": "2026-10-17T03:20:59.783Z",
+        "coveredRecordAt": "2026-10-16T17:32:53.116Z"
+      },
+      "processing": {
+        "state": "updating",
+        "active": 8,
+        "pending": 572,
+        "failed": [],
+        "storageAvailable": true
+      }
+    },
+    "originalsPreserved": true,
+    "identitiesReset": false,
+    "backlogComplete": false,
+    "replacement": "Obsolete CPU-blocked main resident required bounded termination, followed by successful update journal recovery into the immutable corrected snapshot",
+    "retainedOriginalIdPrefix": {
+      "firstId": 0,
+      "lastId": 711,
+      "rows": 712,
+      "verified": "read-only SQLite query; current IDs contiguous 0..724"
+    },
+    "persistedSummaryNodesByLevel": [
+      {
+        "level": 0,
+        "count": 195
+      }
+    ]
+  },
+  "nativeCodexWitness": {
+    "runtimeVersion": "0.163.0",
+    "worktree": "~/.codex/worktrees/15ae/savage",
+    "durableEvents": [
+      "SessionStart",
+      "UserPromptSubmit",
+      "Stop"
+    ],
+    "eventCount": 3,
+    "stderrBytes": 0,
+    "mcpStatus": "completed without error",
+    "selfMcpFeedbackRecords": 0
+  },
+  "regressions": {
+    "olderWaiterBeforeHotReacquisition": "passed",
+    "nestedSharedAndProfileFairness": "passed",
+    "interruptionReleasesCapacity": "passed"
+  },
+  "review": {
+    "standards": "no remaining findings",
+    "spec": "no remaining findings",
+    "uniiByteAccounting": "no semantic findings"
+  },
+  "validationStatus": "Functional, type, CRAP and installed gates pass. Local full check-all fails strict warm-hook p95 under variable host load; clean-runner validation pending. No threshold changes.",
+  "validation": "stalled-compaction-and-hook-recovery",
+  "installedDoctor": {
+    "hooks": "ready",
+    "mcp": "ready",
+    "runtimeAvailable": true,
+    "problems": []
+  },
+  "latencyInvestigation": {
+    "unchangedHookSha256": "39d048dc0fb744805654e537925de889dcaf87766c2bf861ca5baf8681cb9ae7",
+    "failedCandidateWarmP95Ms": [
+      345.90993100000014,
+      491.14680899999985,
+      181.58784800000012,
+      236.9359430000004
+    ],
+    "controlVersion": "0.1.3",
+    "controlWarmP95Ms": 150.17504499999995,
+    "budgetMs": 150,
+    "interpretation": "Unchanged hook artifact; control also exceeds budget on this host. Instrumented process CPU varied strongly. These runs do not establish a performance improvement or regression.",
+    "thresholdChanged": false
+  }
+}

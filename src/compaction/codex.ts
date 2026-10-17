@@ -1,6 +1,7 @@
+import { makeCapacity, makeCapacityUnsafe, type Capacity } from "./capacity.js"
 import { realpath } from "node:fs/promises"
 import { isAbsolute } from "node:path"
-import { Effect, Layer, Schema, Semaphore } from "effect"
+import { Effect, Layer, Schema } from "effect"
 import type { CompressionRequest, Observation } from "@firfi/unii"
 import type { AuthReference } from "./profile.js"
 import { AppServer, disabledFeatures } from "./app-server.js"
@@ -200,7 +201,7 @@ export const layer = (options: Options = {}) =>
       if (![concurrency, perAuth, timeoutMs].every((n) => Number.isSafeInteger(n) && n > 0)) {
         return yield* Effect.fail(new CompactionError({ message: "Compactor limits must be positive integers" }))
       }
-      const global = yield* Semaphore.make(concurrency)
+      const global = yield* makeCapacity(concurrency)
       const servers = new Set<AppServer>()
       yield* Effect.addFinalizer(() =>
         Effect.promise(async () => {
@@ -209,7 +210,7 @@ export const layer = (options: Options = {}) =>
       )
       // These are reusable capacity permits, not worker credentials. Eviction while
       // active could multiply per-profile capacity, so retain a bounded registry.
-      const profiles = new Map<string, Semaphore.Semaphore>()
+      const profiles = new Map<string, Capacity>()
       const compress = Effect.fn("Compactor.compress")(function* (
         auth: AuthReference | undefined,
         request: CompressionRequest,
@@ -230,7 +231,7 @@ export const layer = (options: Options = {}) =>
           if (existing !== undefined) return Effect.succeed(existing)
           if (profiles.size >= maximumAuthProfiles)
             return Effect.fail(new CompactionError({ message: "Auth profile capacity reached" }))
-          const created = Semaphore.makeUnsafe(perAuth)
+          const created = makeCapacityUnsafe(perAuth)
           profiles.set(home, created)
           return Effect.succeed(created)
         })

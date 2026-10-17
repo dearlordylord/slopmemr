@@ -97,3 +97,82 @@ it.effect("shares one global capacity across both backends", () =>
     )
   })
 )
+
+it.effect("admits an older waiting project before a busy project reacquires capacity", () =>
+  Effect.gen(function* () {
+    const entered = yield* Deferred.make<void>()
+    const release = yield* Deferred.make<void>()
+    const calls: string[] = []
+    const backend = Compactor.of({
+      compress: Effect.fn("Test.compactProject")(function* (_auth: unknown, job: CompressionRequest) {
+        calls.push(job.source)
+        if (job.source === "holder") {
+          yield* Deferred.succeed(entered, undefined)
+          yield* Deferred.await(release)
+        }
+        return "summary"
+      })
+    })
+    yield* Effect.gen(function* () {
+      const compactor = yield* Compactor
+      const compress = (source: string) => compactor.compress(undefined, { ...request, source }, () => {}, "codex")
+      const hot = yield* Effect.gen(function* () {
+        yield* compress("holder")
+        for (let index = 0; index < 20; index++) yield* compress("new hot-project job")
+      }).pipe(Effect.forkScoped)
+      yield* Deferred.await(entered)
+      const waiting = yield* compress("older waiting project").pipe(Effect.forkScoped)
+      yield* Effect.yieldNow
+      yield* Deferred.succeed(release, undefined)
+      yield* Fiber.join(hot)
+      yield* Fiber.join(waiting)
+      expect(calls[1]).toBe("older waiting project")
+      expect(calls).toHaveLength(22)
+    }).pipe(
+      Effect.scoped,
+      Effect.provide(
+        routing(1).pipe(
+          Layer.provide(Layer.succeed(Compactor, backend)),
+          Layer.provide(Layer.succeed(ClaudeCompactor, backend))
+        )
+      )
+    )
+  })
+)
+
+it.effect("cancels waiting and admitted work without losing compaction capacity", () =>
+  Effect.gen(function* () {
+    const entered = yield* Deferred.make<void>()
+    const calls: string[] = []
+    const backend = Compactor.of({
+      compress: Effect.fn("Test.cancelCompaction")(function* (_auth: unknown, job: CompressionRequest) {
+        calls.push(job.source)
+        if (job.source === "active") {
+          yield* Deferred.succeed(entered, undefined)
+          return yield* Effect.never
+        }
+        return "summary"
+      })
+    })
+    yield* Effect.gen(function* () {
+      const compactor = yield* Compactor
+      const compress = (source: string) => compactor.compress(undefined, { ...request, source }, () => {}, "codex")
+      const active = yield* compress("active").pipe(Effect.forkScoped)
+      yield* Deferred.await(entered)
+      const waiting = yield* compress("cancelled waiter").pipe(Effect.forkScoped)
+      yield* Effect.yieldNow
+      yield* Fiber.interrupt(waiting)
+      yield* Fiber.interrupt(active)
+      expect(yield* compress("after cancellation")).toBe("summary")
+      expect(calls).toEqual(["active", "after cancellation"])
+    }).pipe(
+      Effect.scoped,
+      Effect.provide(
+        routing(1).pipe(
+          Layer.provide(Layer.succeed(Compactor, backend)),
+          Layer.provide(Layer.succeed(ClaudeCompactor, backend))
+        )
+      )
+    )
+  })
+)

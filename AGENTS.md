@@ -24,7 +24,7 @@ These standards adopt the reusable harness and review rules from `../hulymcp`, w
 - Keep core transformations independent of I/O. Put filesystem, socket, process and configuration access at named adapter boundaries.
 - Use `Effect.fn`, typed errors, scoped layers and explicit ports. Hold resource ownership for the entire operation; release it on failure and interruption.
 - Read runtime configuration with Config. Use Effect Console and injected services for observations and testing.
-- Preserve the pinned unstable API allowlist: NodeRuntime.runMain, @effect/vitest.it, and exact file-scoped MCP/Stdio APIs in tsconfig.json. Do not allow whole unstable namespaces. Every source file must be checked by Effect diagnostics.
+- Preserve the pinned unstable API allowlist: NodeRuntime.runMain, @effect/vitest.it, and exact file-scoped MCP/Stdio and fair compaction admission APIs in tsconfig.json. Do not allow whole unstable namespaces. Every source file must be checked by Effect diagnostics.
 - Keep imports acyclic, including type-only imports. Capability slice dependencies are enforced by scripts/check-boundaries.mjs.
 - Fix complexity above the configured limit by separating responsibilities. Do not suppress rules or introduce an allowed-violations baseline.
 - Test behavioral invariants and failure recovery through layers or ports. Place fast-check tests in *.property.test.ts. vi/jest mocks, casts and clock reads are rejected by the project plugin.
