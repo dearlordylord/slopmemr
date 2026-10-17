@@ -5,14 +5,14 @@
   "typescript": "7.0.2",
   "effect": "4.0.3",
   "effectDiagnostics": {
-    "checkedFiles": 104,
+    "checkedFiles": 108,
     "errors": 0,
     "warnings": 0
   },
   "crap4ts": {
     "version": "1.1.0",
     "threshold": 8,
-    "functionCount": 656,
+    "functionCount": 684,
     "maximumScore": 8.0,
     "unknownFunctions": 0,
     "breaches": 0,
@@ -20,8 +20,8 @@
     "percentageThresholds": false
   },
   "tests": {
-    "files": 31,
-    "passed": 223,
+    "files": 32,
+    "passed": 236,
     "failed": 0
   },
   "dependencyCycles": 0,
@@ -33,7 +33,7 @@
     "passed": 2,
     "failed": 0
   },
-  "review": "Final Standards/Spec review of all compaction admission gates and UNII view accounting reports no remaining findings.",
+  "review": "Standards and Spec review with corrective verification: no remaining findings. Typed discovery close, immutable worker selection and bounded pool-owned initialization cancellation verified.",
   "projectIdentity": {
     "file": ".slopmemr-id",
     "relocation": "passed in tests and installed bundle",
@@ -46,14 +46,16 @@
     "codex": "ChatGPT subscription / Luna",
     "claude": "claude.ai subscription / Haiku",
     "crossRuntimeAuthFallback": false,
-    "sharedGlobalConcurrency": 4,
-    "perProfileConcurrency": 2,
+    "sharedGlobalConcurrency": 30,
+    "perProfileConcurrency": 5,
     "installedClaudeWithoutCodex": "passed",
     "liveClaudeCompaction": "docs/validation/claude-compaction.json",
     "legacyForeignAuth": "discarded for inference; explicit same-runtime fallback required",
-    "layerDisposal": "active Claude process terminates before attempt timeout"
+    "layerDisposal": "active Claude process terminates before attempt timeout",
+    "codexWorkerReuse": "docs/validation/compactor-worker-reuse.json",
+    "liveCodexWorkerReuse": "docs/validation/compactor-worker-reuse-live.json"
   },
-  "packageWitness": "docs/validation/package-memory-reading-linux-x64.json",
+  "packageWitness": "docs/validation/package-memory-reading.json",
   "platformPatch": "v0.1.2 canonical snapshot and selected runtime paths through aliased directories; full CLI scenario exercises setup, repair, update and restart through alias; full local check-all exit 0. Native CI evidence accompanies release assets.",
   "selfReadFilter": "docs/validation/self-read-filter.json",
   "npmPackageWitness": "docs/validation/npm-package.json",
@@ -67,18 +69,18 @@
   "version": "0.1.4",
   "environment": {
     "platform": "linux",
-    "arch": "x64",
-    "node": "24.20.0",
-    "runner": "ubuntu-24.04",
-    "run": "https://github.com/dearlordylord/slopmemr/actions/runs/38999567046",
-    "sourceCommit": "fa5b85cfe84adec8a7b1dbe3fab11c792306f065",
-    "uniiCommit": "ccf08d1db1d0bfa2c59d7a5c1a018d760047b9fa"
+    "arch": "arm64",
+    "node": "v24.20.0",
+    "osRelease": "7.0.14-orbstack-00380-ga7e0a2dc9535",
+    "sourceBase": "69e0bfb5a3812630ba9e35654cc6d25eb696df2b",
+    "implementation": "a788779112b1a8aef214d5d879c2db0c94844003395fbd2465b6352d36e8ac7e",
+    "runner": "local shared host"
   },
-  "localPackageWitness": "docs/validation/package-memory-reading.json",
   "compactionRecovery": "docs/validation/compaction-recovery.json",
   "limitations": [
-    "Local Linux arm64 full runs passed functional gates but failed the unchanged warm-hook latency threshold under variable shared-host load. Failed samples are retained. The clean Linux x64 full run passed every gate; this is not a claim that local arm64 timing passed.",
-    "v0.1.4 is installed locally and source is pushed; no public v0.1.4 npm or native release has been published."
+    "Earlier shared-host latency failures remain retained in package-memory-reading-runs.jsonl. This full local Linux arm64 run passed the unchanged strict timing gate; no before/after speedup is claimed.",
+    "Public npm remains0.1.3; current0.1.4 source and installed runtime are not a claim of public release."
   ],
-  "previousNpmRegistryWitness": "docs/validation/npm-registry.json"
+  "previousNpmRegistryWitness": "docs/validation/npm-registry.json",
+  "workerOrganization": "docs/validation/compactor-organization.json"
 }

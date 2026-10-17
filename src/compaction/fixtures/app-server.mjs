@@ -4,6 +4,8 @@ import { createInterface } from "node:readline"
 import { appendFileSync, readFileSync, existsSync, watch } from "node:fs"
 import { join } from "node:path"
 
+if (process.argv.slice(2).join(" ") === "features enable hooks") process.exit(0)
+
 const home = process.env.CODEX_HOME
 const settings = JSON.parse(readFileSync(join(home, "fixture.json"), "utf8"))
 const log = (event, extra = {}) =>
@@ -29,7 +31,10 @@ if (settings.mode === "feature-unknown") delete features.hooks
 features.multi_agent_v2 = { enabled: false, max_concurrent_threads_per_session: 6 }
 features.network_proxy = null
 const disabled = process.argv.includes('mcp_servers={"danger.server"={enabled=false}}')
-const complete = () => {
+let sequence = 0
+const complete = (threadId) => {
+  if (settings.mode === "reuse-byte-budget")
+    for (let count = 0; count < 9; count++) notify("compat/event", { text: "x".repeat(1024 * 1024) })
   if (settings.mode === "bad-notification") {
     notify("item/completed", { secret: "must-not-log" })
     return
@@ -49,15 +54,15 @@ const complete = () => {
   if (settings.mode === "account-update-unchanged") notify("account/updated", {})
   if (settings.mode === "commentary-only") {
     notify("item/completed", {
-      threadId: "thread",
+      threadId,
       item: { type: "agentMessage", phase: "commentary", text: "Not a final summary" }
     })
-    notify("turn/completed", { threadId: "thread", turn: { status: "completed" } })
+    notify("turn/completed", { threadId, turn: { status: "completed" } })
     return
   }
   if (settings.mode === "agent-message-no-text") {
-    notify("item/completed", { threadId: "thread", item: { type: "agentMessage" } })
-    notify("turn/completed", { threadId: "thread", turn: { status: "completed" } })
+    notify("item/completed", { threadId, item: { type: "agentMessage" } })
+    notify("turn/completed", { threadId, turn: { status: "completed" } })
     return
   }
   if (settings.mode === "account-changed") {
@@ -69,25 +74,22 @@ const complete = () => {
     return
   }
   if (settings.mode === "tool") {
-    notify("item/started", { threadId: "thread", item: { type: "commandExecution" } })
+    notify("item/started", { threadId, item: { type: "commandExecution" } })
     return
   }
   notify("thread/tokenUsage/updated", {
-    threadId: "thread",
+    threadId,
     tokenUsage: { total: { inputTokens: 20, outputTokens: 4, cachedInputTokens: 3 } }
   })
   notify("item/completed", {
-    threadId: "thread",
+    threadId,
     item: {
       type: "agentMessage",
       phase: "final_answer",
       text: settings.mode === "empty-summary" ? "" : "Remember the factual decision."
     }
   })
-  notify("turn/completed", {
-    threadId: "thread",
-    turn: { status: settings.mode === "failed" ? "failed" : "completed" }
-  })
+  notify("turn/completed", { threadId, turn: { status: settings.mode === "failed" ? "failed" : "completed" } })
 }
 
 createInterface({ input: process.stdin }).on("line", (line) => {
@@ -98,6 +100,10 @@ createInterface({ input: process.stdin }).on("line", (line) => {
     write({ id: message.id, result })
   }
   if (message.method === "initialize") {
+    if (settings.mode === "hold-initialize") {
+      log("initializing")
+      return
+    }
     if (settings.mode === "rpc-error") {
       write({ id: message.id, error: { message: "must-not-log" } })
       return
@@ -128,12 +134,13 @@ createInterface({ input: process.stdin }).on("line", (line) => {
     }
   }
   if (message.method === "initialize") reply({})
-  else if (message.method === "account/read")
+  else if (message.method === "account/read") {
+    const mode = JSON.parse(readFileSync(join(home, "fixture.json"), "utf8")).mode
     reply({
-      requiresOpenaiAuth: settings.mode !== "account-auth-not-required",
-      account: settings.mode === "logged-out" ? null : { type: settings.mode === "api-key" ? "apiKey" : "chatgpt" }
+      requiresOpenaiAuth: mode !== "account-auth-not-required",
+      account: mode === "logged-out" ? null : { type: mode === "api-key" ? "apiKey" : "chatgpt" }
     })
-  else if (message.method === "config/read")
+  } else if (message.method === "config/read")
     reply({
       config: {
         model_provider: settings.mode === "wrong-provider" ? "other" : "openai",
@@ -171,7 +178,10 @@ createInterface({ input: process.stdin }).on("line", (line) => {
     })
   else if (message.method === "thread/start") {
     log("thread", { params: message.params })
-    reply({ thread: { id: "thread" } })
+    reply({ thread: { id: `thread-${++sequence}` } })
+  } else if (message.method === "thread/unsubscribe") {
+    log("unsubscribed", { params: message.params })
+    reply({ status: "unsubscribed" })
   } else if (message.method === "turn/start") {
     log("turn", { params: message.params })
     if (settings.mode === "malformed") {
@@ -188,17 +198,17 @@ createInterface({ input: process.stdin }).on("line", (line) => {
       const watcher = watch(home, () => {
         if (existsSync(release)) {
           watcher.close()
-          complete()
+          complete(message.params.threadId)
         }
       })
       if (existsSync(release)) {
         watcher.close()
-        complete()
+        complete(message.params.threadId)
       }
       return
     }
     // Exercise completion racing ahead of the turn/start RPC reply.
-    complete()
+    complete(message.params.threadId)
     reply({ turn: { id: "turn", status: "inProgress" } })
   } else write({ id: message.id, error: { code: -32601, message: "unknown method" } })
 })

@@ -1,0 +1,87 @@
+{
+  "validation": "compactor-organization",
+  "issue": "https://github.com/dearlordylord/slopmemr/issues/17",
+  "version": "0.1.4",
+  "implementation": "a788779112b1a8aef214d5d879c2db0c94844003395fbd2465b6352d36e8ac7e",
+  "limits": {
+    "sharedAttempts": 30,
+    "perCanonicalProfile": 5,
+    "identity": "canonical CODEX_HOME or Claude profile; distinct directories are distinct selections"
+  },
+  "admission": {
+    "order": [
+      "profile",
+      "shared"
+    ],
+    "sharedAcrossRuntimes": true,
+    "separateBackendGate": false,
+    "profileRegistryCapacity": 256
+  },
+  "codex": {
+    "ownership": "resident-owned restricted worker pools; never borrow interactive agent server",
+    "resourcePool": "pinned Effect Pool, exclusive leases",
+    "registry": "Effect ScopedCache, bounded by non-evicting admission registry",
+    "lazy": true,
+    "idleTimeToLive": "5 minutes",
+    "newEphemeralThreadPerAttempt": true,
+    "newPrivateDirectoryPerAttempt": true,
+    "unsubscribeOnSuccess": true,
+    "invalidateLeaseOnFailureOrInterruption": true,
+    "perLeaseNativeAuthAndRestrictionChecks": true,
+    "generation": "config/auth filesystem metadata plus system config; credential contents are not read by slopmemr",
+    "responseBudget": "per attempt",
+    "poolOwnedInitialization": "independent deadline; canceled borrower cannot submit source; resource remains scoped"
+  },
+  "claude": "native nonpersistent CLI per attempt; same shared/profile admission limits",
+  "regressionBefore": "Sequential three summaries with inherited MCP started six processes; reuse regression expected two and failed before implementation.",
+  "witnesses": {
+    "offlineInstalled": "docs/validation/compactor-worker-reuse.json",
+    "liveSyntheticCodex": "docs/validation/compactor-worker-reuse-live.json",
+    "fullGate": "docs/validation/quality-gate.json"
+  },
+  "review": {
+    "standards": "no remaining actionable findings after correction",
+    "spec": "no findings"
+  },
+  "installedUpdate": {
+    "activation": "immediate",
+    "restarted": true,
+    "implementation": "a788779112b1a8aef214d5d879c2db0c94844003395fbd2465b6352d36e8ac7e",
+    "hooks": "ready",
+    "mcp": "ready",
+    "problems": []
+  },
+  "realQueue": {
+    "before": {
+      "coveredThrough": 343,
+      "totalRecords": 753,
+      "processing": {
+        "state": "updating",
+        "active": 8,
+        "pending": 522,
+        "failed": [],
+        "storageAvailable": true
+      }
+    },
+    "after": {
+      "coveredThrough": 344,
+      "totalRecords": 753,
+      "processing": {
+        "state": "updating",
+        "active": 8,
+        "pending": 517,
+        "failed": [],
+        "storageAvailable": true
+      }
+    },
+    "observedCodexWorkers": 5,
+    "originalsPreserved": true,
+    "backlogComplete": false,
+    "processObservation": {
+      "initialRestrictedWorkers": 5,
+      "laterRestrictedWorkers": 5,
+      "retainedProcesses": 1
+    }
+  },
+  "complete": true
+}

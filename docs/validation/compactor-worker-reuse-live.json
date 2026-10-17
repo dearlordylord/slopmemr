@@ -1,0 +1,27 @@
+{
+  "validation": "synthetic-live-codex-worker-reuse",
+  "runtime": "Codex 0.163.0",
+  "model": "gpt-6-luna",
+  "authentication": "native ChatGPT profile; no API keys or token copies",
+  "source": "two synthetic port facts; no repository content",
+  "attempts": [
+    {
+      "port": 4317,
+      "factPreserved": true,
+      "summaryBytes": 37,
+      "submissions": 1
+    },
+    {
+      "port": 8624,
+      "factPreserved": true,
+      "summaryBytes": 33,
+      "submissions": 1
+    }
+  ],
+  "sameProcessReused": true,
+  "threadIsolation": true,
+  "unsubscribeAccepted": true,
+  "workersClosedOnDisposal": true,
+  "complete": true,
+  "implementation": "a788779112b1a8aef214d5d879c2db0c94844003395fbd2465b6352d36e8ac7e"
+}

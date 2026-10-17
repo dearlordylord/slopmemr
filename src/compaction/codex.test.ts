@@ -47,7 +47,7 @@ const events = async (home: string) =>
     .filter(Boolean)
     .map((line) => Schema.decodeUnknownSync(Event)(JSON.parse(line)))
 
-const waitForHeld = (home: string, count: number) =>
+const waitForEvent = (home: string, kind: string, count: number) =>
   Effect.tryPromise({
     try: (signal) =>
       new Promise<void>((resolve, reject) => {
@@ -64,7 +64,7 @@ const waitForHeld = (home: string, count: number) =>
         }
         const check = async () => {
           try {
-            if ((await events(home)).filter((event) => event.event === "held").length >= count) {
+            if ((await events(home)).filter((event) => event.event === kind).length >= count) {
               cleanup()
               resolve()
             }
@@ -137,7 +137,7 @@ it.live("cancels a running app-server process when the caller interrupts", () =>
     yield* Effect.gen(function* () {
       const compactor = yield* Compactor
       const fiber = yield* compactor.compress({ codexHome: home }, request, () => {}).pipe(Effect.forkScoped)
-      yield* waitForHeld(home, 1)
+      yield* waitForEvent(home, "held", 1)
       yield* Fiber.interrupt(fiber)
       const log = yield* Effect.promise(() => events(home))
       expect(log.some((event) => event.event === "stopped")).toBe(true)
@@ -155,7 +155,7 @@ it.live("bounds auth-profile concurrency while other callers wait without spawni
           compactor.compress({ codexHome: home }, request, () => {}).pipe(Effect.forkScoped)
         )
       )
-      yield* waitForHeld(home, 2)
+      yield* waitForEvent(home, "held", 2)
       expect((yield* Effect.promise(() => events(home))).filter((event) => event.event === "started")).toHaveLength(2)
       yield* Effect.promise(() => writeFile(join(home, "release"), "complete"))
       for (const fiber of fibers) expect(yield* Fiber.join(fiber)).toBe("Remember the factual decision.")
@@ -172,7 +172,7 @@ it.live("finalizes all active workers when its layer is disposed", () =>
         Effect.flatMap(Compactor, (service) => service.compress({ codexHome: home }, request, () => {}))
       )
       void result.catch(() => {})
-      yield* waitForHeld(home, 1)
+      yield* waitForEvent(home, "held", 1)
       yield* Effect.promise(() => runtime.dispose())
       yield* Effect.promise(() => result.catch(() => "cancelled"))
       expect((yield* Effect.promise(() => events(home))).some((event) => event.event === "stopped")).toBe(true)
@@ -283,5 +283,183 @@ it.live("reuses an explicit fallback and enforces a bounded auth-profile registr
         expect(error.message).toBe(index === 256 ? "Auth profile capacity reached" : "Cannot start Codex compactor")
       }
     }).pipe(Effect.provide(layer({ executable: "codex\0" })))
+  })
+)
+
+it.live("reuses a verified worker for separate ephemeral summary threads", () =>
+  Effect.gen(function* () {
+    const home = yield* fixture("normal", true)
+    yield* Effect.gen(function* () {
+      const compactor = yield* Compactor
+      for (let index = 0; index < 3; index++)
+        expect(yield* compactor.compress({ codexHome: home }, request, () => {})).toBe("Remember the factual decision.")
+      const log = yield* Effect.promise(() => events(home))
+      expect(log.filter((event) => event.event === "started")).toHaveLength(2)
+      expect(log.filter((event) => event.event === "thread")).toHaveLength(3)
+    }).pipe(Effect.provide(layer({ executable, perAuthConcurrency: 1 })))
+    const log = yield* Effect.promise(() => events(home))
+    expect(log.filter((event) => event.event === "stopped")).toHaveLength(2)
+  })
+)
+
+it.live("uses at most five workers for one profile and reuses them across queued requests", () =>
+  Effect.gen(function* () {
+    const home = yield* fixture("hold")
+    yield* Effect.gen(function* () {
+      const compactor = yield* Compactor
+      const fibers = []
+      for (let index = 0; index < 12; index++)
+        fibers.push(yield* compactor.compress({ codexHome: home }, request, () => {}).pipe(Effect.forkScoped))
+      yield* waitForEvent(home, "held", 5)
+      expect((yield* Effect.promise(() => events(home))).filter((event) => event.event === "started")).toHaveLength(5)
+      yield* Effect.promise(() => writeFile(join(home, "release"), "complete"))
+      for (const fiber of fibers) expect(yield* Fiber.join(fiber)).toBe("Remember the factual decision.")
+      const log = yield* Effect.promise(() => events(home))
+      expect(log.filter((event) => event.event === "started")).toHaveLength(5)
+      expect(log.filter((event) => event.event === "unsubscribed")).toHaveLength(12)
+      const starts = log
+        .filter((event) => event.event === "thread")
+        .map((event) =>
+          Schema.decodeUnknownSync(Schema.Struct({ cwd: Schema.String, ephemeral: Schema.Boolean }))(event.params)
+        )
+      expect(new Set(starts.map((entry) => entry.cwd)).size).toBe(12)
+      expect(starts.every((entry) => entry.ephemeral)).toBe(true)
+    }).pipe(Effect.provide(layer({ executable })))
+  })
+)
+
+it.live("cancels one lease without killing other active summaries", () =>
+  Effect.gen(function* () {
+    const home = yield* fixture("hold")
+    yield* Effect.gen(function* () {
+      const compactor = yield* Compactor
+      const first = yield* compactor.compress({ codexHome: home }, request, () => {}).pipe(Effect.forkScoped)
+      const second = yield* compactor.compress({ codexHome: home }, request, () => {}).pipe(Effect.forkScoped)
+      yield* waitForEvent(home, "held", 2)
+      yield* Fiber.interrupt(first)
+      expect((yield* Effect.promise(() => events(home))).filter((event) => event.event === "stopped")).toHaveLength(1)
+      yield* Effect.promise(() => writeFile(join(home, "release"), "complete"))
+      expect(yield* Fiber.join(second)).toBe("Remember the factual decision.")
+      expect(yield* compactor.compress({ codexHome: home }, request, () => {})).toBe("Remember the factual decision.")
+    }).pipe(Effect.provide(layer({ executable, perAuthConcurrency: 2 })))
+  })
+)
+
+it.live("replaces an idle worker which exited before the next summary", () =>
+  Effect.gen(function* () {
+    const home = yield* fixture()
+    yield* Effect.gen(function* () {
+      const compactor = yield* Compactor
+      expect(yield* compactor.compress({ codexHome: home }, request, () => {})).toBe("Remember the factual decision.")
+      const log = yield* Effect.promise(() => events(home))
+      const started = log.find((event) => event.event === "started")
+      expect(started).toBeDefined()
+      if (started === undefined) throw new Error("Missing worker process")
+      yield* Effect.sync(() => process.kill(started.pid, "SIGTERM"))
+      yield* waitForEvent(home, "stopped", 1)
+      expect(yield* compactor.compress({ codexHome: home }, request, () => {})).toBe("Remember the factual decision.")
+      expect((yield* Effect.promise(() => events(home))).filter((event) => event.event === "started")).toHaveLength(2)
+    }).pipe(Effect.provide(layer({ executable, perAuthConcurrency: 1 })))
+  })
+)
+
+it.live.each(["config.toml", "auth.json"])("retires an idle worker after %s generation changes", (name) =>
+  Effect.gen(function* () {
+    const home = yield* fixture()
+    yield* Effect.gen(function* () {
+      const compactor = yield* Compactor
+      expect(yield* compactor.compress({ codexHome: home }, request, () => {})).toBe("Remember the factual decision.")
+      yield* Effect.promise(() => writeFile(join(home, name), "{}"))
+      expect(yield* compactor.compress({ codexHome: home }, request, () => {})).toBe("Remember the factual decision.")
+      const log = yield* Effect.promise(() => events(home))
+      expect(log.filter((event) => event.event === "started")).toHaveLength(2)
+      expect(log.filter((event) => event.event === "stopped")).toHaveLength(1)
+    }).pipe(Effect.provide(layer({ executable, perAuthConcurrency: 1 })))
+  })
+)
+
+it.live("keeps distinct calling profiles in distinct worker pools", () =>
+  Effect.gen(function* () {
+    const first = yield* fixture()
+    const second = yield* fixture()
+    yield* Effect.gen(function* () {
+      const compactor = yield* Compactor
+      for (const home of [first, second, first, second])
+        expect(yield* compactor.compress({ codexHome: home }, request, () => {})).toBe("Remember the factual decision.")
+      for (const home of [first, second])
+        expect((yield* Effect.promise(() => events(home))).filter((event) => event.event === "started")).toHaveLength(1)
+    }).pipe(Effect.provide(layer({ executable, perAuthConcurrency: 1 })))
+  })
+)
+
+it.live("checks current subscription mode before reusing a warm worker", () =>
+  Effect.gen(function* () {
+    const home = yield* fixture()
+    yield* Effect.gen(function* () {
+      const compactor = yield* Compactor
+      yield* compactor.compress({ codexHome: home }, request, () => {})
+      yield* Effect.promise(() => writeFile(join(home, "fixture.json"), JSON.stringify({ mode: "api-key" })))
+      const error = yield* compactor.compress({ codexHome: home }, request, () => {}).pipe(Effect.flip)
+      expect(error.message).toContain("ChatGPT login")
+      const log = yield* Effect.promise(() => events(home))
+      expect(log.filter((event) => event.event === "turn")).toHaveLength(1)
+      expect(log.filter((event) => event.event === "stopped")).toHaveLength(1)
+    }).pipe(Effect.provide(layer({ executable, perAuthConcurrency: 1 })))
+  })
+)
+
+it.live("bounds worker initialization and cleans up a stalled acquisition", () =>
+  Effect.gen(function* () {
+    const home = yield* fixture("hold-initialize")
+    const result = yield* Effect.flatMap(Compactor, (compactor) =>
+      compactor.compress({ codexHome: home }, request, () => {})
+    ).pipe(Effect.provide(layer({ executable, timeoutMs: 200 })), Effect.flip)
+    expect(result.message).toContain("timed out")
+    expect((yield* Effect.promise(() => events(home))).filter((event) => event.event === "stopped")).toHaveLength(1)
+  })
+)
+
+it.live("applies response byte limits per attempt rather than across the lifetime of a reused worker", () =>
+  Effect.gen(function* () {
+    const home = yield* fixture("reuse-byte-budget")
+    yield* Effect.gen(function* () {
+      const compactor = yield* Compactor
+      for (let repeat = 0; repeat < 2; repeat++)
+        expect(yield* compactor.compress({ codexHome: home }, request, () => {})).toBe("Remember the factual decision.")
+      expect((yield* Effect.promise(() => events(home))).filter((event) => event.event === "started")).toHaveLength(1)
+    }).pipe(Effect.provide(layer({ executable, perAuthConcurrency: 1 })))
+  })
+)
+
+it.live("keeps canceled initialization scoped and bounded without submitting source", () =>
+  Effect.gen(function* () {
+    const home = yield* fixture("hold-initialize")
+    const runtime = ManagedRuntime.make(layer({ executable, timeoutMs: 300 }))
+    const controller = new AbortController()
+    const pending = runtime
+      .runPromise(
+        Effect.flatMap(Compactor, (compactor) => compactor.compress({ codexHome: home }, request, () => {})),
+        { signal: controller.signal }
+      )
+      .catch(() => "cancelled")
+    try {
+      yield* waitForEvent(home, "initializing", 1)
+      controller.abort()
+      expect(yield* Effect.promise(() => pending)).toBe("cancelled")
+      yield* waitForEvent(home, "stopped", 1)
+      const log = yield* Effect.promise(() => events(home))
+      expect(log.some((event) => event.event === "thread" || event.event === "turn")).toBe(false)
+      yield* Effect.promise(() => writeFile(join(home, "fixture.json"), JSON.stringify({ mode: "normal" })))
+      expect(
+        yield* Effect.promise(() =>
+          runtime.runPromise(
+            Effect.flatMap(Compactor, (compactor) => compactor.compress({ codexHome: home }, request, () => {}))
+          )
+        )
+      ).toBe("Remember the factual decision.")
+    } finally {
+      controller.abort()
+      yield* Effect.promise(() => runtime.dispose())
+    }
   })
 )

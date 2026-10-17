@@ -198,6 +198,15 @@ export class AppServer {
     this.#write({ method })
   }
 
+  get healthy(): boolean {
+    return this.#failure === undefined
+  }
+
+  beginAttempt(): void {
+    if (this.#failure !== undefined) throw this.#failure
+    this.#received = 0
+  }
+
   invalidate(message: string): void {
     this.#fail(new Error(message))
   }

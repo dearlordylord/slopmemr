@@ -9,17 +9,12 @@ import { makeCapacity } from "./capacity.js"
 import { defaultConcurrency } from "./limits.js"
 
 /** Root memory remains shared. Inference never falls back across runtimes. */
-export const routing = (concurrency = defaultConcurrency) =>
+export const routing = () =>
   Layer.effect(
     Compactor,
     Effect.gen(function* () {
-      if (!Number.isSafeInteger(concurrency) || concurrency <= 0)
-        return yield* Effect.fail(
-          new CompactionError({ message: "Shared compaction capacity must be a positive integer" })
-        )
       const codex = yield* Compactor
       const claude = yield* ClaudeCompactor
-      const global = yield* makeCapacity(concurrency)
       return Compactor.of({
         compress: Effect.fn("Compactor.route")(function* (auth, request, emit, runtime) {
           const selected = runtime ?? (auth === undefined ? "codex" : authRuntime(auth))
@@ -29,13 +24,19 @@ export const routing = (concurrency = defaultConcurrency) =>
             )
           if (selected !== "codex" && selected !== "claude")
             return yield* Effect.fail(new CompactionError({ message: "Unsupported source agent runtime" }))
-          return yield* global.withPermit(
-            (selected === "codex" ? codex : claude).compress(auth, request, emit, selected)
-          )
+          return yield* (selected === "codex" ? codex : claude).compress(auth, request, emit, selected)
         })
       })
     })
   )
 
 export const layer = (codex: CodexOptions = {}, claude: ClaudeOptions = {}) =>
-  routing(codex.concurrency).pipe(Layer.provide(codexLayer(codex)), Layer.provide(claudeLayer(claude)))
+  Layer.unwrap(
+    Effect.gen(function* () {
+      const concurrency = codex.concurrency ?? defaultConcurrency
+      if (!Number.isSafeInteger(concurrency) || concurrency <= 0)
+        return yield* Effect.fail(new CompactionError({ message: "Shared compaction capacity must be positive" }))
+      const shared = yield* makeCapacity(concurrency)
+      return routing().pipe(Layer.provide(codexLayer(codex, shared)), Layer.provide(claudeLayer(claude, shared)))
+    })
+  )

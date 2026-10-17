@@ -1,0 +1,19 @@
+{
+  "validation": "installed-codex-worker-reuse",
+  "provider": "offline protocol fixture",
+  "providerInference": false,
+  "implementation": "a788779112b1a8aef214d5d879c2db0c94844003395fbd2465b6352d36e8ac7e",
+  "limits": {
+    "shared": 30,
+    "perProfile": 5
+  },
+  "durableRecords": 16,
+  "coveredThrough": 16,
+  "hooksAcknowledgeWhileFiveSummariesHeld": true,
+  "workerStarts": 5,
+  "completedTurns": 16,
+  "workersReused": true,
+  "ephemeralThreadsReleased": true,
+  "workersClosedOnShutdown": true,
+  "complete": true
+}

@@ -39,7 +39,7 @@
     "complexity": "oxlint -c oxlint.complexity.json src",
     "verify:cohort": "node scripts/check-cohort.mjs",
     "test:coverage": "vitest run --coverage",
-    "test:installed": "node scripts/installed-witness.mjs",
+    "test:installed": "node scripts/installed-witness.mjs && node scripts/compactor-reuse-witness.mjs",
     "test:native": "node scripts/native-agent-witness.mjs",
     "test:claude": "node scripts/claude-compaction-witness.mjs",
     "prepare": "husky",

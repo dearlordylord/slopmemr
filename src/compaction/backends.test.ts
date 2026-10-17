@@ -1,10 +1,14 @@
+import { mkdtemp, mkdir, writeFile, chmod, rm } from "node:fs/promises"
+import { join } from "node:path"
+import { tmpdir } from "node:os"
+import { fileURLToPath } from "node:url"
 import { expect } from "vitest"
 import { it } from "@effect/vitest"
 import { Deferred, Effect, Fiber, Layer } from "effect"
 import type { CompressionRequest } from "@firfi/unii"
 import { Compactor } from "./compactor.js"
 import { ClaudeCompactor } from "./claude.js"
-import { routing } from "./backends.js"
+import { layer, routing } from "./backends.js"
 
 const request: CompressionRequest = {
   jobId: "job",
@@ -53,126 +57,53 @@ it.effect("routes by source runtime and rejects mismatched profiles without cros
   })
 )
 
-it.effect("shares one global capacity across both backends", () =>
-  Effect.gen(function* () {
-    const first = yield* Deferred.make<void>()
-    const release = yield* Deferred.make<void>()
-    const calls: string[] = []
-    const codex = {
-      compress: Effect.fn("Test.hold")(() =>
-        Effect.gen(function* () {
-          calls.push("codex")
-          yield* Deferred.succeed(first, undefined)
-          yield* Deferred.await(release)
-          return "codex"
+it.live("a saturated Codex login leaves shared capacity available to the actual Claude adapter", () =>
+  Effect.acquireUseRelease(
+    Effect.promise(() => mkdtemp(join(tmpdir(), "slopmemr-routing-"))),
+    (directory) =>
+      Effect.gen(function* () {
+        const codexHome = join(directory, "codex")
+        const claudeHome = join(directory, "claude")
+        const codexExecutable = fileURLToPath(new URL("./fixtures/app-server.mjs", import.meta.url))
+        const claudeExecutable = fileURLToPath(new URL("./fixtures/claude.mjs", import.meta.url))
+        yield* Effect.promise(async () => {
+          await Promise.all([
+            mkdir(codexHome),
+            mkdir(claudeHome),
+            chmod(codexExecutable, 0o755),
+            chmod(claudeExecutable, 0o755)
+          ])
+          await writeFile(join(codexHome, "fixture.json"), JSON.stringify({ mode: "hold" }))
+          await writeFile(join(codexHome, "events.jsonl"), "")
+          await writeFile(join(claudeHome, "fixture-mode"), "normal")
         })
-      )
-    }
-    const claude = {
-      compress: Effect.fn("Test.claude")(() =>
-        Effect.sync(() => {
-          calls.push("claude")
-          return "claude"
-        })
-      )
-    }
-    yield* Effect.gen(function* () {
-      const compactor = yield* Compactor
-      const a = yield* compactor.compress({ codexHome: "/codex" }, request, () => {}).pipe(Effect.forkScoped)
-      yield* Deferred.await(first)
-      const b = yield* compactor.compress({ claudeHome: "/claude" }, request, () => {}).pipe(Effect.forkScoped)
-      yield* Effect.yieldNow
-      expect(calls).toEqual(["codex"])
-      yield* Deferred.succeed(release, undefined)
-      expect(yield* Fiber.join(a)).toBe("codex")
-      expect(yield* Fiber.join(b)).toBe("claude")
-    }).pipe(
-      Effect.scoped,
-      Effect.provide(
-        routing(1).pipe(
-          Layer.provide(Layer.succeed(Compactor, codex)),
-          Layer.provide(Layer.succeed(ClaudeCompactor, claude))
+        const entered = yield* Deferred.make<void>()
+        yield* Effect.gen(function* () {
+          const compactor = yield* Compactor
+          const active = yield* compactor
+            .compress({ codexHome }, request, (event) => {
+              if (event.kind === "submission") Effect.runSync(Deferred.succeed(entered, undefined))
+            })
+            .pipe(Effect.forkScoped)
+          yield* Deferred.await(entered)
+          const waiting = yield* compactor.compress({ codexHome }, request, () => {}).pipe(Effect.forkScoped)
+          yield* Effect.yieldNow
+          expect(yield* compactor.compress({ claudeHome }, request, () => {}, "claude")).toBe(
+            "Remember the Claude fact."
+          )
+          yield* Effect.promise(() => writeFile(join(codexHome, "release"), "complete"))
+          expect(yield* Fiber.join(active)).toBe("Remember the factual decision.")
+          expect(yield* Fiber.join(waiting)).toBe("Remember the factual decision.")
+        }).pipe(
+          Effect.scoped,
+          Effect.provide(
+            layer(
+              { executable: codexExecutable, concurrency: 2, perAuthConcurrency: 1 },
+              { executable: claudeExecutable, perAuthConcurrency: 1 }
+            )
+          )
         )
-      )
-    )
-  })
-)
-
-it.effect("admits an older waiting project before a busy project reacquires capacity", () =>
-  Effect.gen(function* () {
-    const entered = yield* Deferred.make<void>()
-    const release = yield* Deferred.make<void>()
-    const calls: string[] = []
-    const backend = Compactor.of({
-      compress: Effect.fn("Test.compactProject")(function* (_auth: unknown, job: CompressionRequest) {
-        calls.push(job.source)
-        if (job.source === "holder") {
-          yield* Deferred.succeed(entered, undefined)
-          yield* Deferred.await(release)
-        }
-        return "summary"
-      })
-    })
-    yield* Effect.gen(function* () {
-      const compactor = yield* Compactor
-      const compress = (source: string) => compactor.compress(undefined, { ...request, source }, () => {}, "codex")
-      const hot = yield* Effect.gen(function* () {
-        yield* compress("holder")
-        for (let index = 0; index < 20; index++) yield* compress("new hot-project job")
-      }).pipe(Effect.forkScoped)
-      yield* Deferred.await(entered)
-      const waiting = yield* compress("older waiting project").pipe(Effect.forkScoped)
-      yield* Effect.yieldNow
-      yield* Deferred.succeed(release, undefined)
-      yield* Fiber.join(hot)
-      yield* Fiber.join(waiting)
-      expect(calls[1]).toBe("older waiting project")
-      expect(calls).toHaveLength(22)
-    }).pipe(
-      Effect.scoped,
-      Effect.provide(
-        routing(1).pipe(
-          Layer.provide(Layer.succeed(Compactor, backend)),
-          Layer.provide(Layer.succeed(ClaudeCompactor, backend))
-        )
-      )
-    )
-  })
-)
-
-it.effect("cancels waiting and admitted work without losing compaction capacity", () =>
-  Effect.gen(function* () {
-    const entered = yield* Deferred.make<void>()
-    const calls: string[] = []
-    const backend = Compactor.of({
-      compress: Effect.fn("Test.cancelCompaction")(function* (_auth: unknown, job: CompressionRequest) {
-        calls.push(job.source)
-        if (job.source === "active") {
-          yield* Deferred.succeed(entered, undefined)
-          return yield* Effect.never
-        }
-        return "summary"
-      })
-    })
-    yield* Effect.gen(function* () {
-      const compactor = yield* Compactor
-      const compress = (source: string) => compactor.compress(undefined, { ...request, source }, () => {}, "codex")
-      const active = yield* compress("active").pipe(Effect.forkScoped)
-      yield* Deferred.await(entered)
-      const waiting = yield* compress("cancelled waiter").pipe(Effect.forkScoped)
-      yield* Effect.yieldNow
-      yield* Fiber.interrupt(waiting)
-      yield* Fiber.interrupt(active)
-      expect(yield* compress("after cancellation")).toBe("summary")
-      expect(calls).toEqual(["active", "after cancellation"])
-    }).pipe(
-      Effect.scoped,
-      Effect.provide(
-        routing(1).pipe(
-          Layer.provide(Layer.succeed(Compactor, backend)),
-          Layer.provide(Layer.succeed(ClaudeCompactor, backend))
-        )
-      )
-    )
-  })
+      }),
+    (directory) => Effect.promise(() => rm(directory, { recursive: true, force: true }))
+  )
 )

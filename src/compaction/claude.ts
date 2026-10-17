@@ -1,4 +1,5 @@
-import { makeCapacity, makeCapacityUnsafe, type Capacity } from "./capacity.js"
+import type { Capacity } from "./capacity.js"
+import { makeAdmission } from "./admission.js"
 import { mkdtemp, realpath, rm } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { isAbsolute, join } from "node:path"
@@ -8,12 +9,7 @@ import { CompactionError, instructions, prompt } from "./compactor.js"
 import type { Interface } from "./compactor.js"
 import type { AuthReference } from "./profile.js"
 import { runClaude } from "./claude-process.js"
-import {
-  defaultConcurrency,
-  defaultPerAuthConcurrency,
-  defaultAttemptTimeoutMs,
-  maximumAuthProfiles
-} from "./limits.js"
+import { defaultConcurrency, defaultPerAuthConcurrency, defaultAttemptTimeoutMs } from "./limits.js"
 
 export class ClaudeCompactor extends Context.Service<ClaudeCompactor, Interface>()("slopmemr/ClaudeCompactor") {}
 
@@ -210,7 +206,7 @@ const attempt = (executable: string, home: string, request: CompressionRequest, 
     (worker) => Effect.promise(() => closeAttempt(worker))
   )
 
-export const layer = (options: Options = {}) =>
+export const layer = (options: Options = {}, shared?: Capacity) =>
   Layer.effect(
     ClaudeCompactor,
     Effect.gen(function* () {
@@ -219,8 +215,7 @@ export const layer = (options: Options = {}) =>
       const timeoutMs = options.timeoutMs ?? defaultAttemptTimeoutMs
       if (![concurrency, perAuth, timeoutMs].every((n) => Number.isSafeInteger(n) && n > 0))
         return yield* Effect.fail(new CompactionError({ message: "Claude compactor limits must be positive integers" }))
-      const global = yield* makeCapacity(concurrency)
-      const profiles = new Map<string, Capacity>()
+      const admission = yield* makeAdmission(concurrency, perAuth, shared)
       const compress = Effect.fn("ClaudeCompactor.compress")(function* (
         auth: AuthReference | undefined,
         request: CompressionRequest,
@@ -235,22 +230,13 @@ export const layer = (options: Options = {}) =>
           try: () => realpath(requestedHome),
           catch: () => new CompactionError({ message: "Caller Claude profile unavailable" })
         })
-        const permit = yield* Effect.suspend(() => {
-          const existing = profiles.get(home)
-          if (existing !== undefined) return Effect.succeed(existing)
-          if (profiles.size >= maximumAuthProfiles)
-            return Effect.fail(new CompactionError({ message: "Claude auth profile capacity reached" }))
-          const created = makeCapacityUnsafe(perAuth)
-          profiles.set(home, created)
-          return Effect.succeed(created)
-        })
         const work = attempt(options.executable ?? "claude", home, request, emit).pipe(
           Effect.timeout(`${timeoutMs} millis`),
           Effect.mapError((error) =>
             error instanceof CompactionError ? error : new CompactionError({ message: "Claude compaction timed out" })
           )
         )
-        return yield* permit.withPermit(global.withPermit(work))
+        return yield* admission.withPermit(home, work)
       })
       return ClaudeCompactor.of({ compress })
     })
