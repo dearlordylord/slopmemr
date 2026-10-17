@@ -5,14 +5,14 @@
   "typescript": "7.0.2",
   "effect": "4.0.3",
   "effectDiagnostics": {
-    "checkedFiles": 102,
+    "checkedFiles": 104,
     "errors": 0,
     "warnings": 0
   },
   "crap4ts": {
     "version": "1.1.0",
     "threshold": 8,
-    "functionCount": 653,
+    "functionCount": 656,
     "maximumScore": 8.0,
     "unknownFunctions": 0,
     "breaches": 0,
@@ -20,8 +20,8 @@
     "percentageThresholds": false
   },
   "tests": {
-    "files": 30,
-    "passed": 220,
+    "files": 31,
+    "passed": 223,
     "failed": 0
   },
   "dependencyCycles": 0,
@@ -33,7 +33,7 @@
     "passed": 2,
     "failed": 0
   },
-  "review": "Three bounded corrective Standards/Spec passes; final pass reports zero actionable findings on each axis. Typed memory reads, complete snapshot metadata, schema-owned CLI responses, durable delivery recovery and independent component diagnostics regression-tested.",
+  "review": "Final Standards/Spec review of all compaction admission gates and UNII view accounting reports no remaining findings.",
   "projectIdentity": {
     "file": ".slopmemr-id",
     "relocation": "passed in tests and installed bundle",
@@ -53,7 +53,7 @@
     "legacyForeignAuth": "discarded for inference; explicit same-runtime fallback required",
     "layerDisposal": "active Claude process terminates before attempt timeout"
   },
-  "packageWitness": "docs/validation/package-memory-reading.json",
+  "packageWitness": "docs/validation/package-memory-reading-linux-x64.json",
   "platformPatch": "v0.1.2 canonical snapshot and selected runtime paths through aliased directories; full CLI scenario exercises setup, repair, update and restart through alias; full local check-all exit 0. Native CI evidence accompanies release assets.",
   "selfReadFilter": "docs/validation/self-read-filter.json",
   "npmPackageWitness": "docs/validation/npm-package.json",
@@ -64,5 +64,21 @@
     "cliSource": "built CLI --help",
     "driftCheck": "read-only; enforced after build in check-all"
   },
-  "npmRegistryWitness": "docs/validation/npm-registry.json"
+  "version": "0.1.4",
+  "environment": {
+    "platform": "linux",
+    "arch": "x64",
+    "node": "24.20.0",
+    "runner": "ubuntu-24.04",
+    "run": "https://github.com/dearlordylord/slopmemr/actions/runs/38999567046",
+    "sourceCommit": "fa5b85cfe84adec8a7b1dbe3fab11c792306f065",
+    "uniiCommit": "ccf08d1db1d0bfa2c59d7a5c1a018d760047b9fa"
+  },
+  "localPackageWitness": "docs/validation/package-memory-reading.json",
+  "compactionRecovery": "docs/validation/compaction-recovery.json",
+  "limitations": [
+    "Local Linux arm64 full runs passed functional gates but failed the unchanged warm-hook latency threshold under variable shared-host load. Failed samples are retained. The clean Linux x64 full run passed every gate; this is not a claim that local arm64 timing passed.",
+    "v0.1.4 is installed locally and source is pushed; no public v0.1.4 npm or native release has been published."
+  ],
+  "previousNpmRegistryWitness": "docs/validation/npm-registry.json"
 }

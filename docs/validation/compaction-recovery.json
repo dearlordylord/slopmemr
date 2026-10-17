@@ -23,17 +23,17 @@
     },
     "after": {
       "totalRecords": 725,
-      "coveredThrough": 137,
-      "bytes": 53553,
+      "coveredThrough": 176,
+      "bytes": 69254,
       "coverage": "behind",
       "freshness": {
         "latestRecordAt": "2026-10-17T03:20:59.783Z",
-        "coveredRecordAt": "2026-10-16T17:32:53.116Z"
+        "coveredRecordAt": "2026-10-16T17:47:29.082Z"
       },
       "processing": {
         "state": "updating",
         "active": 8,
-        "pending": 572,
+        "pending": 556,
         "failed": [],
         "storageAvailable": true
       }
@@ -78,7 +78,7 @@
     "spec": "no remaining findings",
     "uniiByteAccounting": "no semantic findings"
   },
-  "validationStatus": "Functional, type, CRAP and installed gates pass. Local full check-all fails strict warm-hook p95 under variable host load; clean-runner validation pending. No threshold changes.",
+  "validationStatus": "Complete full check-all passed on clean Linux x64 runner; local Linux arm64 latency failures are retained and are not reported as passing.",
   "validation": "stalled-compaction-and-hook-recovery",
   "installedDoctor": {
     "hooks": "ready",
@@ -99,5 +99,18 @@
     "budgetMs": 150,
     "interpretation": "Unchanged hook artifact; control also exceeds budget on this host. Instrumented process CPU varied strongly. These runs do not establish a performance improvement or regression.",
     "thresholdChanged": false
+  },
+  "cleanRunner": {
+    "run": "https://github.com/dearlordylord/slopmemr/actions/runs/38999567046",
+    "sourceCommit": "fa5b85cfe84adec8a7b1dbe3fab11c792306f065",
+    "exitCode": 0,
+    "tests": 223,
+    "files": 31,
+    "effectCheckedFiles": 104,
+    "crapFunctions": 656,
+    "maximumCrap": 8,
+    "unknownFunctions": 0,
+    "strictHookLatencyPassed": true,
+    "witness": "docs/validation/package-memory-reading-linux-x64.json"
   }
 }
